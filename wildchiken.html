@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Άγρια Κοτόπουλα - Remastered</title>
+<style>
+:root{--bg:#07090e;--fg:#e8ecf4;--ac:#ff922b;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;align-items:center;justify-content:center;overflow:hidden;user-select:none;-webkit-user-select:none}
+#wrap{position:relative;line-height:0}
+canvas{background:#4d8b28;border-radius:16px;touch-action:none;display:block;box-shadow:0 12px 40px rgba(0,0,0,0.65), 0 0 0 2px rgba(255,255,255,0.1)}
+#ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:20px;background:rgba(6,8,14,.92);border-radius:16px;line-height:1.4;text-align:center;color:#e8ecf4;backdrop-filter:blur(6px)}
+#ov h1{margin:0;font-size:28px;color:#ffd43b;text-shadow:0 2px 8px rgba(255,212,59,0.3)}
+#ov p{margin:0;font-size:13.5px;opacity:.9;max-width:310px}
+.top-btn{position:absolute;top:10px;width:38px;height:34px;border:1px solid rgba(255,255,255,0.25);border-radius:10px;background:rgba(0,0,0,0.55);color:#fff;font-size:16px;line-height:1;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;z-index:10;backdrop-filter:blur(4px)}
+.top-btn:active{transform:scale(0.92)}
+#pz{left:10px}
+#snd{right:10px}
+.b{background:linear-gradient(135deg, #ff922b, #e8590c);color:#fff;border:0;border-radius:12px;padding:12px 24px;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 4px 15px rgba(232,89,12,0.4);transition:transform 0.1s;width:100%;max-width:280px;text-transform:uppercase;letter-spacing:0.5px}
+.b:active{transform:scale(0.95)}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c" width="360" height="640"></canvas>
+  <button id="pz" class="top-btn" aria-label="Παύση">⏸</button>
+  <button id="snd" class="top-btn" aria-label="Ήχος">🔊</button>
+  <div id="ov"></div>
+</div>
+<script>
+const cv=document.getElementById('c'),ctx=cv.getContext('2d'),ov=document.getElementById('ov');
+const W=360,H=640,PY=H-48,LINE=H-95;
+function fit(){const s=Math.min(innerWidth/W,innerHeight/H,1.6);cv.style.width=W*s+'px';cv.style.height=H*s+'px';}
+addEventListener('resize',fit);fit();
+
+/* ---------- Web Audio Synthesizer ---------- */
+let audioMuted=false;
+const AudioCtx=window.AudioContext||window.webkitAudioContext;
+let actx=null;
+function initAudio(){if(!actx)actx=new AudioCtx();}
+function playSound(type){
+  if(audioMuted||!actx)return;
+  if(actx.state==='suspended')actx.resume();
+  const t=actx.currentTime,o=actx.createOscillator(),g=actx.createGain();
+  o.connect(g);g.connect(actx.destination);
+  if(type==='shoot'){
+    o.type='square';o.frequency.setValueAtTime(450,t);o.frequency.exponentialRampToValueAtTime(90,t+0.07);
+    g.gain.setValueAtTime(0.09,t);g.gain.linearRampToValueAtTime(0.01,t+0.07);
+    o.start(t);o.stop(t+0.07);
+  }else if(type==='laser'){
+    o.type='sawtooth';o.frequency.setValueAtTime(900,t);o.frequency.linearRampToValueAtTime(250,t+0.12);
+    g.gain.setValueAtTime(0.07,t);g.gain.linearRampToValueAtTime(0.01,t+0.12);
+    o.start(t);o.stop(t+0.12);
+  }else if(type==='cannon'){
+    o.type='triangle';o.frequency.setValueAtTime(140,t);o.frequency.exponentialRampToValueAtTime(30,t+0.22);
+    g.gain.setValueAtTime(0.22,t);g.gain.linearRampToValueAtTime(0.01,t+0.22);
+    o.start(t);o.stop(t+0.22);
+  }else if(type==='hit'){
+    o.type='sine';o.frequency.setValueAtTime(220,t);o.frequency.linearRampToValueAtTime(60,t+0.04);
+    g.gain.setValueAtTime(0.06,t);g.gain.linearRampToValueAtTime(0.01,t+0.04);
+    o.start(t);o.stop(t+0.04);
+  }else if(type==='upg'){
+    o.type='sine';o.frequency.setValueAtTime(320,t);o.frequency.linearRampToValueAtTime(640,t+0.18);
+    g.gain.setValueAtTime(0.12,t);g.gain.linearRampToValueAtTime(0.01,t+0.18);
+    o.start(t);o.stop(t+0.18);
+  }else if(type==='stun'){
+    o.type='sawtooth';o.frequency.setValueAtTime(110,t);o.frequency.linearRampToValueAtTime(280,t+0.25);
+    g.gain.setValueAtTime(0.18,t);g.gain.linearRampToValueAtTime(0.01,t+0.25);
+    o.start(t);o.stop(t+0.25);
+  }
+}
+document.getElementById('snd').onclick=()=>{audioMuted=!audioMuted;document.getElementById('snd').textContent=audioMuted?'🔇':'🔊';};
+
+let tops=[];try{tops=JSON.parse(localStorage.getItem('kd_top10')||'[]')}catch(e){}
+let S=null,tx=W/2,keys={},last=0,seed=11,shake=0,millAngle=0;
+
+const mk=g=>({
+ E:(x,y,a,b,c,r)=>{g.fillStyle=c;g.beginPath();g.ellipse(x,y,a,b,r||0,0,6.28);g.fill();},
+ R:(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(x,y,w,h);},
+ P:(p,c)=>{g.fillStyle=c;g.beginPath();p.forEach((q,i)=>i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1]));g.closePath();g.fill();}
+});
+const {E,R,P}=mk(ctx);
+function rnd(){seed=seed*16807%2147483647;return seed/2147483647;}
+
+/* ---------- Φόντο Φάρμας με Λεπτομέρειες ---------- */
+const BG=document.createElement('canvas');BG.width=W;BG.height=H;
+(function(){const g=BG.getContext('2d'),{E,R,P}=mk(g);
+ let gr=g.createLinearGradient(0,0,0,H);gr.addColorStop(0,'#6aa832');gr.addColorStop(0.5,'#4d8b28');gr.addColorStop(1,'#386b1c');g.fillStyle=gr;g.fillRect(0,0,W,H);
+ // Τουφίτσες γρασιδιού
+ g.strokeStyle='rgba(30,80,15,0.35)';g.lineWidth=2;
+ for(let i=0;i<180;i++){const x=rnd()*W,y=rnd()*H;g.beginPath();g.moveTo(x-2,y);g.lineTo(x,y-7);g.lineTo(x+3,y);g.stroke();}
+ // Δρόμος με χώμα
+ g.beginPath();g.moveTo(118,0);g.quadraticCurveTo(95,220,118,400);g.quadraticCurveTo(130,520,70,640);g.lineTo(290,640);g.quadraticCurveTo(240,520,235,400);g.quadraticCurveTo(225,200,215,0);g.closePath();
+ g.lineWidth=14;g.strokeStyle='rgba(100,65,15,.35)';g.stroke();g.fillStyle='#c89643';g.fill();
+ for(let i=0;i<150;i++)E(128+rnd()*90,rnd()*H,1.5+rnd()*3,1+rnd()*2,rnd()<.5?'rgba(110,70,15,.25)':'rgba(255,230,150,.35)');
+ 
+ // Αχυρώνας δεξιά
+ P([[270,75],[355,75],[355,135],[270,135]],'#a83824');
+ for(let x=276;x<355;x+=10)R(x,75,2,60,'rgba(60,20,10,.3)');
+ P([[258,80],[284,20],[355,5],[355,80]],'#d94b30');
+ g.strokeStyle='#fff';g.lineWidth=2;g.strokeRect(295,95,34,35);R(295,95,34,35,'#2b1810');
+ 
+ // Μποστάνι αριστερά (Καρότα/Κολοκύθες)
+ R(12,480,50,90,'#5c3a1e');
+ for(let y=490;y<560;y+=22)for(let x=22;x<55;x+=16){E(x,y,5,4,'#e67e22');E(x-2,y-3,3,2,'#27ae60');}
+
+ // Σκίαση Vignette
+ gr=g.createRadialGradient(W/2,H/2,H*.35,W/2,H/2,H*.78);gr.addColorStop(0,'rgba(0,0,0,0)');gr.addColorStop(1,'rgba(5,20,5,.4)');g.fillStyle=gr;g.fillRect(0,0,W,H);
+})();
+
+/* ---------- Engine State ---------- */
+const dmM=l=>(1+.22*(l-1))*S.dm;
+
+function reset(){
+  tx=W/2;
+  S={
+    st:'play',t:0,px:W/2,n:1,
+    lv:{r:1,l:0,c:0},ft:{r:0,l:0,c:0},
+    ch:[],eg:[],bl:[],bm:[],fx:[],tt:[],ex:[],bale:[],muzz:[],
+    sp:0,kills:0,bosses:0,flash:0,dm:1,rt:1,nm:60,bs:null,stun:0
+  };
+  S.bale=[
+    {x:65,y:LINE-18,hp:120,mhp:120},
+    {x:W/2,y:LINE-18,hp:120,mhp:120},
+    {x:W-65,y:LINE-18,hp:120,mhp:120}
+  ];
+}
+
+function spawn(){
+  const t=S.t,r=Math.random();
+  const ty=t>35&&r<.22?2:(t>12&&r<.48?1:0);
+  const hp=(8+t*.18+t*t*.0008)*(ty==2?3.8:ty==1?.65:1);
+  const sp=(26+Math.min(t*.2,24)+Math.sqrt(t)*.5)*(ty==1?1.65:ty==2?.72:1);
+  const o={
+    ty,r:ty==2?19:ty==1?10:13,
+    hp,mhp:hp,sp,
+    col:ty==0?'#ffffff':ty==1?'#ffe3c2':'#e0e0e0',
+    bx:30+Math.random()*(W-60),x:30+Math.random()*(W-60),y:-30,
+    ph:Math.random()*6,egg:Math.random()<.14,dt:.5+Math.random()*2.5,hitTimer:0
+  };
+  S.ch.push(o);
+}
+
+function boom(x,y,c,n,scale=1){
+  for(let i=0;i<n;i++){
+    const a=Math.random()*6.28,v=(30+Math.random()*120)*scale;
+    S.fx.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,l:.4+Math.random()*.2,m:.5,c,r:(2+Math.random()*3)*scale});
+  }
+}
+function text(x,y,s,c){S.tt.push({x,y,s,c,l:1.6});}
+function px(i){return S.px+(i-(S.n-1)/2)*Math.min(30,(W-50)/Math.max(1,S.n-1));}
+
+/* ---------- Upgrades ---------- */
+const UP=[
+{c:'Όπλο',w:3,col:'#74c0fc',t:s=>'Τουφέκι → Επ. '+(s.lv.r+1),f:s=>{s.lv.r++}},
+{c:'Όπλο',w:2,col:'#ff8787',t:s=>s.lv.l?'Λέιζερ → Επ. '+(s.lv.l+1):'ΝΕΟ ΟΠΛΟ: Λέιζερ!',f:s=>{s.lv.l++}},
+{c:'Όπλο',w:2,col:'#ffa94d',t:s=>s.lv.c?'Κανόνι → Επ. '+(s.lv.c+1):'ΝΕΟ ΟΠΛΟ: Κανόνι!',f:s=>{s.lv.c++}},
+{c:'Ομάδα',w:2,col:'#8ce99a',t:s=>'Νέος παίκτης ('+(s.n+1)+'/5)',f:s=>{s.n++},ok:s=>s.n<5},
+{c:'Ζημιά',w:1,col:'#ffd43b',t:s=>'+35% ζημιά',f:s=>{s.dm*=1.35}},
+{c:'Ταχύτητα',w:1,col:'#ffd43b',t:s=>'+25% ταχύτητα βολής',f:s=>{s.rt*=1.25}},
+{c:'Βόμβα',w:1,col:'#ffd43b',t:s=>'Βόμβα!',f:s=>{s.ch.forEach(c=>{c.hp-=c.boss?300:90+s.t*.6;c.hitTimer=.15;});s.flash=.35;shake=12;}}];
+
+function upgrade(x,y){
+  playSound('upg');
+  const o=UP.filter(u=>!u.ok||u.ok(S));
+  let r=Math.random()*o.reduce((a,u)=>a+u.w,0),u=o[0];
+  for(const q of o){if((r-=q.w)<0){u=q;break;}}
+  text(x,y,u.t(S),u.col);u.f(S);
+}
+
+function expl(b){
+  shake=7;
+  S.ex.push({x:b.x,y:b.y,r:b.rad,l:.35,m:.35});
+  for(const c of S.ch)if(Math.hypot(c.x-b.x,c.y-b.y)<b.rad+c.r){c.hp-=b.d;c.hitTimer=.15;}
+  for(const e of S.eg)if(Math.hypot(e.x-b.x,e.y-b.y)<b.rad+10)e.hp-=b.d;
+  boom(b.x,b.y,'#ffb347',18,1.3);
+}
+
+function fire(dt){
+  const L=S.lv,F=S.ft;
+  if(L.r){
+    F.r-=dt;if(F.r<=0){
+      F.r=Math.max(.05,.32/(1+.14*(L.r-1))/S.rt);
+      playSound('shoot');
+      const sh=Math.min(5,1+Math.floor((L.r-1)/2));
+      for(let i=0;i<S.n;i++){
+        S.muzz.push({x:px(i),y:PY-38,l:.06});
+        for(let k=0;k<sh;k++){
+          const a=(k-(sh-1)/2)*.09;
+          S.bl.push({x:px(i),y:PY-36,vx:Math.sin(a)*640,vy:-Math.cos(a)*640,d:10*dmM(L.r)});
+        }
+      }
+    }
+  }
+  if(L.l){
+    F.l-=dt;if(F.l<=0){
+      F.l=Math.max(.3,1.7/(1+.12*(L.l-1))/S.rt);
+      playSound('laser');
+      const bw=12+Math.min(14,2*L.l),dg=45*(1+.25*(L.l-1))*S.dm;
+      for(let i=0;i<S.n;i++){
+        const bx=px(i);S.bm.push({x:bx,w:bw,l:.25,m:.25});
+        for(const c of S.ch)if(c.y>0&&Math.abs(c.x-bx)<c.r+bw/2){c.hp-=dg;c.hitTimer=.12;}
+        for(const e of S.eg)if(e.y>0&&Math.abs(e.x-bx)<13+bw/2)e.hp-=dg;
+      }
+    }
+  }
+  if(L.c){
+    F.c-=dt;if(F.c<=0){
+      F.c=Math.max(.2,1.3/(1+.12*(L.c-1))/S.rt);
+      playSound('cannon');
+      for(let i=0;i<S.n;i++)S.bl.push({x:px(i),y:PY-34,vx:0,vy:-440,d:95*(1+.3*(L.c-1))*S.dm,cn:1,rad:65+Math.min(50,4*L.c)});
+    }
+  }
+}
+
+/* ---------- Boss Logic ---------- */
+function spawnBoss(){
+  const hp=5200+S.t*28+S.bosses*4800,b={boss:1,r:48,hp,mhp:hp,col:'#ffe08a',x:W/2,y:-70,bx:W/2,ph:0,st:'in',tm:0,te:1.5,td:6,tx:W/2,tg:0,hitTimer:0};
+  S.ch.push(b);S.bs=b;S.nm+=60;text(W/2,H/2,'ΑΡΧΗΓΟΣ ΚΟΤΟΠΟΥΛΟ!','#ff6b6b');
+}
+
+function bossUpd(c,dt){
+  c.tm+=dt;
+  if(c.st=='in'){c.y+=75*dt;if(c.y>=110){c.y=110;c.st='hover';}return;}
+  if(c.st=='hover'){
+    c.x=W/2+Math.sin(S.t*.9)*105;c.y=110+Math.sin(S.t*2.2)*8;
+    c.te-=dt;if(c.te<=0){
+      c.te=Math.max(.85,1.7-S.bosses*.25);
+      for(let k=0;k<1+Math.min(3,S.bosses);k++){
+        const g=px(Math.floor(Math.random()*S.n)),T=(PY-14-c.y)/170;
+        S.ch.push({ge:1,r:11,hp:25+S.t*.3,mhp:1,x:c.x,y:c.y+c.r,vx:(g-c.x)/T,sp:175,col:'#fff3bf',ph:0});
+      }
+    }
+    c.td-=dt;if(c.td<=0){c.st='warn';c.tm=0;c.tg=Math.floor(Math.random()*S.n);}return;
+  }
+  if(c.st=='warn'){if(c.tm<.7){const x=px(Math.min(c.tg,S.n-1));c.x+=Math.max(-340*dt,Math.min(340*dt,x-c.x));}if(c.tm>1.1)c.st='dive';return;}
+  if(c.st=='dive'){c.y+=580*dt;if(c.y>=PY-30)diveEnd(c);return;}
+  if(c.st=='back'){c.y-=250*dt;if(c.y<=110){c.y=110;c.st='hover';c.td=Math.max(3.5,7-S.bosses*.6);}}
+}
+
+function diveEnd(c){
+  shake=14;
+  let bi=-1,bd=1e9;for(let i=0;i<S.n;i++){const d=Math.abs(px(i)-c.x);if(d<c.r*.85&&d<bd){bd=d;bi=i;}}
+  if(bi>=0){
+    boom(px(bi),PY,'#ff6b6b',30,1.5);text(W/2,PY-70,'Έφαγε έναν παίκτη!','#ff8787');
+    S.n--;S.flash=.3;if(S.n<=0){over();return;}
+  }else text(c.x,PY-70,'Τον ξέφυγες!','#8ce99a');
+  c.st='back';
+}
+
+function upd(dt){
+  if(!S||S.st!='play')return;
+  S.t+=dt;millAngle+=dt*0.8;
+  if(shake>0)shake-=dt*22;
+  
+  let d=0;if(keys.ArrowLeft||keys.a)d--;if(keys.ArrowRight||keys.d)d++;if(d)tx+=d*440*dt;
+  const half=(S.n-1)*Math.min(15,(W-50)/Math.max(1,S.n-1)/2)+16;
+  tx=Math.max(half,Math.min(W-half,tx));
+  S.px+=Math.max(-580*dt,Math.min(580*dt,tx-S.px));
+
+  S.sp-=dt;if(S.sp<=0){S.sp=Math.max(.15,.9-S.t*.004)*(S.bs?1.6:1);const k=1+Math.floor(S.t/45);for(let i=0;i<k;i++)spawn();}
+  if(S.stun>0)S.stun-=dt;else fire(dt);
+
+  for(const c of S.ch){
+    if(c.hitTimer>0)c.hitTimer-=dt;
+    if(c.boss){bossUpd(c,dt);continue;}
+    if(c.ge){
+      c.x+=c.vx*dt;c.y+=c.sp*dt;
+      if(c.y>PY-14){c.hp=-1;S.stun=1.6;playSound('stun');boom(c.x,PY,'#ffe066',16);text(c.x,PY-40,'ΣΟΚ!','#ffe066');}
+      continue;
+    }
+    c.y+=c.sp*dt;c.x=Math.max(15,Math.min(W-15,c.bx+Math.sin(S.t*2+c.ph)*12));
+    if(c.egg&&c.y>30){c.dt-=dt;if(c.dt<=0){c.egg=false;S.eg.push({x:c.x,y:c.y+c.r,hp:25+S.t*.4,mhp:25+S.t*.4,vy:60});}}
+  }
+
+  for(const e of S.eg)e.y+=e.vy*dt;
+  for(const b of S.bl){
+    b.x+=b.vx*dt;b.y+=b.vy*dt;let hit=false;
+    for(const e of S.eg)if(Math.hypot(e.x-b.x,e.y-b.y)<(b.cn?18:13)){hit=true;if(!b.cn)e.hp-=b.d;break;}
+    if(!hit)for(const c of S.ch)if(Math.hypot(c.x-b.x,c.y+c.r*.3-b.y)<c.r+(b.cn?8:3)){hit=true;if(!b.cn){c.hp-=b.d;c.hitTimer=.12;}break;}
+    if(b.cn&&(hit||b.y<80)){expl(b);b.dead=1;}
+    else if(hit||b.y<-10||b.x<-10||b.x>W+10){b.dead=1;if(hit){playSound('hit');boom(b.x,b.y,'#fff',3);}}
+  }
+  S.bl=S.bl.filter(b=>!b.dead);
+
+  for(const q of S.bm)q.l-=dt;S.bm=S.bm.filter(q=>q.l>0);
+  for(const q of S.muzz)q.l-=dt;S.muzz=S.muzz.filter(q=>q.l>0);
+  for(const e of S.eg)if(e.hp<=0){boom(e.x,e.y,'#ffd43b',20,1.2);upgrade(e.x,Math.min(e.y,H-200));}
+  S.eg=S.eg.filter(e=>e.hp>0&&e.y<H+20);
+
+  let bd=false;
+  for(const c of S.ch)if(c.hp<=0){
+    if(c.boss){bd=true;S.bs=null;S.bosses++;boom(c.x,c.y,'#fff',45,2);boom(c.x,c.y,'#ffd43b',35,1.8);text(W/2,H/2,'Ο αρχηγός νικήθηκε!','#ffd43b');}
+    else if(c.ge)boom(c.x,c.y,'#ffe066',8);
+    else{S.kills++;boom(c.x,c.y,c.ty==1?'#ffe3c2':c.ty==2?'#aaaaaa':'#ffffff',c.r>15?18:9);}
+  }
+  S.ch=S.ch.filter(c=>c.hp>0);
+  if(bd)milestone();else if(!S.bs&&S.kills>=S.nm)spawnBoss();
+
+  for(const f of S.fx){f.x+=f.vx*dt;f.y+=f.vy*dt;f.l-=dt;}S.fx=S.fx.filter(f=>f.l>0);
+  for(const q of S.ex)q.l-=dt;S.ex=S.ex.filter(q=>q.l>0);
+  for(const q of S.tt){q.y-=25*dt;q.l-=dt;}S.tt=S.tt.filter(q=>q.l>0);
+  if(S.flash>0)S.flash-=dt;
+
+  if(S.st=='play'){
+    for(const c of S.ch){
+      if(c.boss||c.ge)continue;
+      if(c.y+c.r>LINE-25){
+        let hitBale=false;
+        for(const b of S.bale){
+          if(b.hp>0&&Math.abs(c.x-b.x)<25){
+            b.hp-=35;c.hp=-1;hitBale=true;
+            boom(c.x,c.y,'#d9a74e',14);
+            break;
+          }
+        }
+        if(!hitBale&&c.y+c.r>LINE){over();return;}
+      }
+    }
+  }
+}
+
+function milestone(){
+  S.st='pick';const o=UP.filter(u=>!u.ok||u.ok(S)),ch=[];
+  while(ch.length<3&&o.length)ch.push(o.splice(Math.floor(Math.random()*o.length),1)[0]);
+  ov.style.display='flex';ov.innerHTML='<h1>Ο αρχηγός νικήθηκε!</h1><p>Διάλεξε αναβάθμιση:</p>';
+  ch.forEach(u=>{
+    const b=document.createElement('button');b.className='b';
+    b.style.cssText='width:100%;max-width:300px;text-align:left;margin-bottom:6px';
+    b.innerHTML='<small style="display:block;font-size:11px;opacity:.85">'+u.c+'</small>'+u.t(S);
+    b.onclick=()=>{u.f(S);ov.style.display='none';S.st='play';};
+    ov.appendChild(b);
+  });
+}
+
+function board(cur){
+  if(!tops.length)return'';
+  return'<div style="font-size:12px;line-height:1.5;text-align:left;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;width:100%;max-width:260px"><b>Top 10 Σκορ</b>'+
+  tops.map((e,i)=>'<div style="'+(e===cur?'color:#ffd43b;font-weight:700':'')+'">'+(i+1)+'. '+e.s+' πόντοι <span style="opacity:.7">('+e.k+' κοτ.)</span></div>').join('')+'</div>';
+}
+
+function over(){
+  S.st='over';const sc=S.kills*10+500*S.bosses,t=Math.floor(S.t),e={s:sc,k:S.kills,t};
+  tops.push(e);tops.sort((a,b)=>b.s-a.s);tops=tops.slice(0,10);
+  try{localStorage.setItem('kd_top10',JSON.stringify(tops))}catch(_){}
+  ov.style.display='flex';ov.innerHTML='<h1>Τα κοτόπουλα νίκησαν!</h1><p>Σκορ '+sc+' · '+S.kills+' κοτόπουλα · '+t+'δ</p>'+board(e);
+  const b=document.createElement('button');b.className='b';b.textContent='Ξανά';b.onclick=()=>{ov.style.display='none';reset();};ov.appendChild(b);
+}
+
+/* ---------- Advanced Rendering (Sprites & Effects) ---------- */
+
+// Ανεμόμυλος στο υπόβαθρο
+function drawWindmill(){
+  const mx=55,my=110;
+  R(mx-8,my-40,16,50,'#7c5295');P([[mx-8,my-40],[mx+8,my-40],[mx,my-55]],'#5a3a6e');
+  ctx.save();ctx.translate(mx,my-40);ctx.rotate(millAngle);
+  ctx.strokeStyle='#fff';ctx.lineWidth=2;
+  for(let i=0;i<4;i++){
+    ctx.rotate(Math.PI/2);
+    R(0,-3,28,6,'#e8e8e8');ctx.strokeRect(0,-3,28,6);
+  }
+  ctx.restore();
+}
+
+function chick(c){
+  if(c.ge){
+    E(c.x+2,c.y+c.r+2,c.r,c.r*.4,'rgba(0,0,0,.3)');
+    E(c.x,c.y,c.r+1.5,c.r*1.25+1.5,'#c0392b');
+    E(c.x,c.y,c.r,c.r*1.25,'#fff3bf');
+    return;
+  }
+  const r=c.r,x=c.x+(c.st=='warn'?Math.sin(S.t*60)*4:0),y=c.y,w=Math.sin(S.t*14+c.ph)*.35,hy=y+r*.8,hr=r*.55;
+  
+  // Σκιά εδάφους
+  E(x,y+r*1.1,r*1.1,r*.35,'rgba(0,0,0,.28)');
+
+  // Φτερά
+  E(x-r*1.05,y,r*.4,r*.65,'#b0bec5',-.4+w);E(x+r*1.05,y,r*.4,r*.65,'#b0bec5',.4-w);
+  
+  // Σώμα & Flash όταν τρώει damage
+  const bodyCol=c.hitTimer>0?'#ff8888':c.col;
+  E(x,y,r+1.5,r*.95+1.5,'#2c3e50');E(x,y,r,r*.95,bodyCol);
+  
+  // Θωρακισμένο Κράνος (Τύπος 2)
+  if(c.ty==2){
+    R(x-r*.85,y-r*1.15,r*1.7,r*.75,'#607d8b');
+    R(x-r*.95,y-r*.55,r*1.9,r*.25,'#37474f');
+    E(x,y-r*.9,r*.3,r*.25,'#f44336');
+  }
+
+  // Κεφάλι / Λαιμός
+  E(x,hy,hr*1.1,hr*1.05,bodyCol);
+  
+  // Λοφίο
+  E(x,hy-hr*1.05,r*.22,r*.32,'#e74c3c');E(x-r*.18,hy-hr*.95,r*.16,r*.24,'#c0392b');E(x+r*.18,hy-hr*.95,r*.16,r*.24,'#c0392b');
+  
+  // Μύτη / Ράμφος
+  P([[x-hr*.38,hy+hr*.35],[x+hr*.38,hy+hr*.35],[x,hy+hr*1.25]],'#f39c12');
+  
+  // Μάτια
+  E(x-hr*.42,hy-hr*.05,hr*.25,hr*.28,'#fff');E(x+hr*.42,hy-hr*.05,hr*.25,hr*.28,'#fff');
+  E(x-hr*.42,hy,hr*.13,hr*.15,'#111');E(x+hr*.42,hy,hr*.13,hr*.15,'#111');
+  
+  // Στέμμα Αρχηγού
+  if(c.boss){
+    P([[x-r*.55,y-r*1.0],[x-r*.45,y-r*1.55],[x-r*.18,y-r*1.15],[x,y-r*1.75],[x+r*.18,y-r*1.15],[x+r*.45,y-r*1.55],[x+r*.55,y-r*1.0]],'#f1c40f');
+    E(x,y-r*1.35,3,3,'#e74c3c');
+  }else if(c.hp<c.mhp){
+    // Health Bar
+    R(x-r,y-r-10,r*2,4,'rgba(0,0,0,0.6)');
+    R(x-r,y-r-10,r*2*Math.max(0,c.hp/c.mhp),4,'#2ecc71');
+  }
+}
+
+function human(x,wp){
+  // Σκιά
+  E(x,PY+22,14,5,'rgba(0,0,0,.35)');
+  // Πόδια
+  R(x-8,PY+14,6,9,'#4a3525');R(x+2,PY+14,6,9,'#4a3525');
+  // Παντελόνι / Σώμα
+  R(x-9,PY-2,18,18,'#2980b9');
+  R(x-6,PY-2,12,18,'#3498db');
+  // Ζώνη
+  R(x-9,PY+6,18,3,'#2c3e50');
+  // Χέρια & Όπλο
+  if(wp==0){
+    R(x-2,PY-38,4,30,'#2c3e50'); // Τουφέκι
+    R(x-3,PY-20,6,12,'#7f8c8d');
+  }else if(wp==1){
+    R(x-4,PY-32,8,24,'#34495e'); // Λέιζερ
+    R(x-3,PY-36,6,6,'#e74c3c');
+  }else{
+    R(x-7,PY-34,14,28,'#2c3e50'); // Κανόνι
+    R(x-5,PY-38,10,6,'#e67e22');
+  }
+  // Πρόσωπο & Ψάθινο Καπέλο
+  E(x,PY-11,6,5,'#ffcc80');
+  E(x,PY-15,14,5.5,'#f1c40f');
+  E(x,PY-18,8,5,'#f39c12');
+}
+
+function draw(){
+  ctx.save();
+  if(shake>0)ctx.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake);
+  ctx.drawImage(BG,0,0);
+  
+  drawWindmill();
+
+  // Κόκκινη γραμμή άμυνας (Glow effect)
+  ctx.lineWidth=4;ctx.setLineDash([10,8]);ctx.strokeStyle='#e74c3c';
+  ctx.shadowColor='#e74c3c';ctx.shadowBlur=8;
+  ctx.beginPath();ctx.moveTo(14,LINE);ctx.lineTo(W-14,LINE);ctx.stroke();
+  ctx.setLineDash([]);ctx.shadowBlur=0;
+
+  // Άχυρα Άμυνας (3D Texture)
+  for(const b of S.bale){
+    if(b.hp>0){
+      E(b.x,b.y+12,22,6,'rgba(0,0,0,0.3)');
+      R(b.x-22,b.y-12,44,24,'#d4ac0d');
+      R(b.x-22,b.y-12,44,5,'#f1c40f');
+      ctx.strokeStyle='#7d6608';ctx.lineWidth=1.5;ctx.strokeRect(b.x-22,b.y-12,44,24);
+      if(b.hp<b.mhp){
+        R(b.x-18,b.y-18,36,4,'rgba(0,0,0,0.6)');
+        R(b.x-18,b.y-18,36*(b.hp/b.mhp),4,'#2ecc71');
+      }
+    }
+  }
+
+  // Boss Laser Targeting Beam
+  const B=S.bs;if(B&&(B.st=='warn'||B.st=='dive')){
+    ctx.fillStyle='rgba(231,76,60,'+(.18+.12*Math.sin(S.t*24))+')';
+    ctx.fillRect(B.x-B.r*.75,B.y,B.r*1.5,PY+22-B.y);
+  }
+
+  // Αυγά
+  for(const e of S.eg){
+    const g=.5+.5*Math.sin(S.t*8);
+    E(e.x,e.y,17+g*3,20+g*3,'rgba(241,196,15,'+(.2+.25*g)+')');
+    E(e.x,e.y,10,13,'#fff3bf');
+    ctx.fillStyle='#e67e22';ctx.font='bold 14px system-ui';ctx.textAlign='center';ctx.fillText('?',e.x,e.y+5);
+  }
+
+  // Εχθροί
+  S.ch.forEach(chick);
+
+  // Explosions
+  for(const q of S.ex){
+    const f=q.l/q.m,g=ctx.createRadialGradient(q.x,q.y,2,q.x,q.y,q.r);
+    g.addColorStop(0,'rgba(255,255,200,'+f+')');g.addColorStop(.5,'rgba(230,126,34,'+f*.8+')');g.addColorStop(1,'rgba(231,76,60,0)');
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(q.x,q.y,q.r*(1.15-f*.3),0,6.28);ctx.fill();
+  }
+
+  // Σφαίρες
+  for(const b of S.bl){
+    if(b.cn){
+      E(b.x,b.y,7,7,'#2c3e50');E(b.x-2,b.y-2,2,2,'#95a5a6');
+    }else{
+      ctx.fillStyle='#f1c40f';ctx.shadowColor='#f39c12';ctx.shadowBlur=4;
+      ctx.beginPath();ctx.arc(b.x,b.y,3.5,0,6.28);ctx.fill();ctx.shadowBlur=0;
+    }
+  }
+
+  // Muzzle Flashes
+  for(const m of S.muzz){
+    E(m.x,m.y,8,12,'rgba(241,196,15,0.9)');E(m.x,m.y,4,6,'#fff');
+  }
+
+  // Δέσμες Λέιζερ (Laser Beams)
+  for(const q of S.bm){
+    const f=q.l/q.m;
+    ctx.strokeStyle='rgba(231,76,60,'+.4*f+')';ctx.lineWidth=q.w+12;
+    ctx.beginPath();ctx.moveTo(q.x,PY-36);ctx.lineTo(q.x,0);ctx.stroke();
+    ctx.strokeStyle='rgba(255,255,255,'+f+')';ctx.lineWidth=Math.max(3,q.w*.3*f);ctx.stroke();
+  }
+
+  // Αγρότες
+  const wp=S.lv.c?2:S.lv.l?1:0;
+  for(let i=0;i<S.n;i++){
+    human(px(i),wp);
+    if(S.stun>0)E(px(i)+Math.cos(S.t*10)*10,PY-28+Math.sin(S.t*10)*4,3.5,3.5,'#f1c40f');
+  }
+
+  // Particles
+  for(const f of S.fx){
+    ctx.globalAlpha=Math.max(0,f.l/f.m);ctx.fillStyle=f.c;
+    ctx.beginPath();ctx.arc(f.x,f.y,f.r||2.5,0,6.28);ctx.fill();
+  }ctx.globalAlpha=1;
+
+  // Text Popups
+  ctx.font='800 15px system-ui';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='rgba(0,0,0,.8)';
+  for(const q of S.tt){
+    const tx2=Math.max(90,Math.min(W-90,q.x));
+    ctx.globalAlpha=Math.min(1,q.l);ctx.strokeText(q.s,tx2,q.y);ctx.fillStyle=q.c;ctx.fillText(q.s,tx2,q.y);
+  }ctx.globalAlpha=1;
+
+  if(S.flash>0){ctx.fillStyle='rgba(255,255,255,'+S.flash*2+')';ctx.fillRect(0,0,W,H);}
+
+  // Boss HP Bar (Top HUD)
+  if(B){
+    R(60,42,240,11,'rgba(0,0,0,0.6)');
+    R(60,42,240*Math.max(0,B.hp/B.mhp),11,'#e74c3c');
+    ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.strokeRect(60,42,240,11);
+  }
+
+  // Top Bar HUD
+  ctx.fillStyle='#fff';ctx.font='800 14px system-ui';ctx.textAlign='left';ctx.fillText(Math.floor(S.t)+'δ',50,23);
+  ctx.textAlign='right';ctx.fillText('Κοτόπουλα '+S.kills,W-50,23);
+  ctx.textAlign='center';ctx.font='600 11.5px system-ui';ctx.fillText('Τουφ.'+S.lv.r+(S.lv.l?' Λέιζ.'+S.lv.l:'')+(S.lv.c?' Καν.'+S.lv.c:'')+' · Παίκτες '+S.n+'/5',W/2,H-8);
+  ctx.restore();
+}
+
+function pause(){if(!S||S.st!='play')return;S.st='paused';ov.style.display='flex';ov.innerHTML='<h1>Παύση</h1>';const b=document.createElement('button');b.className='b';b.textContent='Συνέχεια';b.onclick=resume;ov.appendChild(b);}
+function resume(){if(S&&S.st=='paused'){ov.style.display='none';S.st='play';}}
+document.getElementById('pz').onclick=pause;
+
+addEventListener('keydown',e=>{
+  initAudio();
+  keys[e.key]=true;
+  if(e.key=='p'||e.key=='P'||e.key=='Escape'){if(S&&S.st=='paused')resume();else pause();}
+});
+addEventListener('keyup',e=>{keys[e.key]=false;});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});
+
+function loop(t){
+  const dt=Math.min(.05,(t-last)/1000||0);last=t;
+  if(S){upd(dt);draw();}
+  requestAnimationFrame(loop);
+}
+
+function mx(e){
+  const r=cv.getBoundingClientRect();
+  return(e.clientX-r.left)*W/r.width;
+}
+
+cv.addEventListener('pointerdown',e=>{initAudio();tx=mx(e);});
+cv.addEventListener('pointermove',e=>{if(e.buttons>0||e.pointerType==='touch')tx=mx(e);});
+
+ov.innerHTML='<h1>Άγρια Κοτόπουλα</h1><p>Σύρε το δάχτυλο/ποντίκι ή χρησιμοποίησε ← → / A D για να μετακινήσεις τους αγρότες. Μην αφήσεις τα κοτόπουλα να περάσουν τη γραμμή!</p>'+board(null);
+const g0=document.createElement('button');g0.className='b';g0.textContent='Παίξε';
+g0.onclick=()=>{initAudio();ov.style.display='none';reset();};
+ov.appendChild(g0);
+
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
