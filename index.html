@@ -3,15 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Άγρια Κοτόπουλα - Brainless Survivor Remastered</title>
+<title>Άγρια Κοτόπουλα - Global Leaderboard Edition (Top 10)</title>
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 <style>
 :root{--bg:#07090e;--fg:#e8ecf4;--ac:#ff922b;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;align-items:center;justify-content:center;overflow:hidden;user-select:none;-webkit-user-select:none}
 #wrap{position:relative;line-height:0}
 canvas{background:#4d8b28;border-radius:16px;touch-action:none;display:block;box-shadow:0 12px 40px rgba(0,0,0,0.65), 0 0 0 2px rgba(255,255,255,0.1)}
 #ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px;background:rgba(6,8,14,.94);border-radius:16px;line-height:1.4;text-align:center;color:#e8ecf4;backdrop-filter:blur(8px)}
-#ov h1{margin:0;font-size:26px;color:#ffd43b;text-shadow:0 2px 10px rgba(255,212,59,0.5)}
-#ov p{margin:0;font-size:13px;opacity:.9;max-width:310px}
+#ov h1{margin:0;font-size:24px;color:#ffd43b;text-shadow:0 2px 10px rgba(255,212,59,0.5)}
+#ov p{margin:0;font-size:12px;opacity:.9;max-width:310px}
 .top-btn{position:absolute;top:10px;width:38px;height:34px;border:1px solid rgba(255,255,255,0.25);border-radius:10px;background:rgba(0,0,0,0.55);color:#fff;font-size:16px;line-height:1;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;z-index:10;backdrop-filter:blur(4px)}
 .top-btn:active{transform:scale(0.92)}
 #pz{left:10px}
@@ -34,6 +37,40 @@ canvas{background:#4d8b28;border-radius:16px;touch-action:none;display:block;box
   <div id="ov"></div>
 </div>
 <script>
+/* ---------- Firebase Global Leaderboard (Top 10) ---------- */
+const firebaseConfig = {
+  apiKey: "AIzaSyALcWTIVs603q3LGa9I-5yFnlU5EXYmJN8",
+  authDomain: "wildchickens-990d5.firebaseapp.com",
+  databaseURL: "https://wildchickens-990d5-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "wildchickens-990d5",
+  storageBucket: "wildchickens-990d5.firebasestorage.app",
+  messagingSenderId: "288996909371",
+  appId: "1:288996909371:web:8cc34db604af969256971e",
+  measurementId: "G-XQ1Y0G3ZBE"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+let tops = [];
+db.ref('scores').orderByChild('s').limitToLast(10).on('value', snapshot => {
+  const data = snapshot.val();
+  tops = [];
+  if (data) {
+    Object.keys(data).forEach(k => tops.push(data[k]));
+    tops.sort((a, b) => b.s - a.s);
+  }
+});
+
+function saveGlobalScore(name, sc, kills, t) {
+  db.ref('scores').push({
+    n: name,
+    s: sc,
+    k: kills,
+    t: t,
+    ts: Date.now()
+  });
+}
+
 const cv=document.getElementById('c'),ctx=cv.getContext('2d'),ov=document.getElementById('ov');
 const W=360,H=640,PY=H-48,LINE=H-95,TESLA_Y=LINE-140;
 function fit(){const s=Math.min(innerWidth/W,innerHeight/H,1.6);cv.style.width=W*s+'px';cv.style.height=H*s+'px';}
@@ -89,8 +126,6 @@ function playSound(type){
 }
 document.getElementById('snd').onclick=()=>{audioMuted=!audioMuted;document.getElementById('snd').textContent=audioMuted?'🔇':'🔊';};
 
-/* ---------- Top 5 High Scores ---------- */
-let tops=[];try{tops=JSON.parse(localStorage.getItem('kd_top5')||'[]')}catch(e){}
 let S=null,tx=W/2,keys={},last=0,seed=11,shake=0,millAngle=0;
 
 const mk=g=>({
@@ -192,7 +227,6 @@ const UP=[
 ];
 
 function triggerEggCollect(x,y){
-  // 3% Πιθανότητα για Super Jackpot (+5 levels σε όπλο)
   if(Math.random()<0.03){
     const wTypes=['r','l','c'];
     const sel=wTypes[Math.floor(Math.random()*3)];
@@ -364,14 +398,12 @@ function upd(dt){
     if(c.ty==3)c.x=Math.max(15,Math.min(W-15,c.bx+Math.sin(S.t*6+c.ph)*45));
     else c.x=Math.max(15,Math.min(W-15,c.bx+Math.sin(S.t*2+c.ph)*12));
     
-    // Αυγά: Τώρα θέλουν 1 μόνο χτύπημα! (hp: 1)
     if(c.egg&&c.y>30){c.dt-=dt;if(c.dt<=0){c.egg=false;S.eg.push({x:c.x,y:c.y+c.r,hp:1,mhp:1,vy:60});}}
   }
 
   for(const e of S.eg)e.y+=e.vy*dt;
   for(const b of S.bl){
     b.x+=b.vx*dt;b.y+=b.vy*dt;let hit=false;
-    // 1-Hit στα αυγά
     for(const e of S.eg)if(Math.hypot(e.x-b.x,e.y-b.y)<(b.cn?18:13)){
       hit=true;e.hp=0;break;
     }
@@ -386,7 +418,6 @@ function upd(dt){
   for(const q of S.bm)q.l-=dt;S.bm=S.bm.filter(q=>q.l>0);
   for(const q of S.muzz)q.l-=dt;S.muzz=S.muzz.filter(q=>q.l>0);
   
-  // Έλεγχος Συλλογής Αυγών (1-Hit + 3% Super Jackpot)
   for(const e of S.eg)if(e.hp<=0){
     boom(e.x,e.y,'#ffd43b',20,1.2);
     triggerEggCollect(e.x,e.y);
@@ -473,25 +504,23 @@ function milestone(){
 }
 
 function board(){
-  if(!tops.length)return'';
-  return'<div style="font-size:12px;line-height:1.5;text-align:left;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:8px 12px;width:100%;max-width:260px"><b>Top 5 High Scores</b>'+
-  tops.map((e,i)=>'<div>'+(i+1)+'. <b>'+(e.n||'Παίκτης')+'</b> - '+e.s+' πόντοι <span style="opacity:.7">('+e.k+' κοτ.)</span></div>').join('')+'</div>';
+  if(!tops.length)return'<div style="font-size:12px;opacity:.7">Φόρτωση παγκόσμιων σκορ...</div>';
+  return'<div style="font-size:11px;line-height:1.4;text-align:left;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:6px 10px;width:100%;max-width:270px;max-height:160px;overflow-y:auto"><b>🌍 Global Top 10 Scores</b>'+
+  tops.map((e,i)=>'<div>'+(i+1)+'. <b>'+(e.n||'Παίκτης')+'</b> - '+e.s+' <span style="opacity:.7">('+e.k+' κοτ.)</span></div>').join('')+'</div>';
 }
 
 function over(){
   S.st='over';const sc=S.kills*10+500*S.bosses,t=Math.floor(S.t);
   ov.style.display='flex';
   
-  const isTop5=tops.length<5||sc>(tops[tops.length-1]?.s||0);
-  if(isTop5){
-    ov.innerHTML='<h1>Νέο High Score!</h1><p>Σκορ '+sc+' · '+S.kills+' κοτόπουλα · '+t+' s</p>'+
+  const isTop10=tops.length<10||sc>(tops[tops.length-1]?.s||0);
+  if(isTop10){
+    ov.innerHTML='<h1>Νέο Παγκόσμιο Record!</h1><p>Σκορ '+sc+' · '+S.kills+' κοτόπουλα · '+t+' s</p>'+
     '<input type="text" id="pname" class="name-in" placeholder="Δώσε όνομα..." maxlength="12" />'+
     '<button id="savebtn" class="b">Αποθήκευση</button>';
     document.getElementById('savebtn').onclick=()=>{
       const name=document.getElementById('pname').value.trim()||'Παίκτης';
-      tops.push({n:name,s:sc,k:S.kills,t});
-      tops.sort((a,b)=>b.s-a.s);tops=tops.slice(0,5);
-      try{localStorage.setItem('kd_top5',JSON.stringify(tops))}catch(_){}
+      saveGlobalScore(name,sc,S.kills,t);
       showGameOverScreen(sc,S.kills,t);
     };
   }else{
@@ -587,7 +616,6 @@ function draw(){
 
   drawWindmill();
 
-  // Υψωμένος Tesla Φράχτης (TESLA_Y)
   if(S&&S.hasTesla){
     ctx.strokeStyle='rgba(116, 192, 252, '+(.75+.25*Math.sin(S.t*20))+')';
     ctx.lineWidth=5;ctx.shadowColor='#74c0fc';ctx.shadowBlur=12;
@@ -595,7 +623,6 @@ function draw(){
     ctx.shadowBlur=0;
   }
 
-  // Κόκκινη γραμμή άμυνας
   ctx.lineWidth=4;ctx.setLineDash([10,8]);ctx.strokeStyle='#e74c3c';
   ctx.shadowColor='#e74c3c';ctx.shadowBlur=8;
   ctx.beginPath();ctx.moveTo(14,LINE);ctx.lineTo(W-14,LINE);ctx.stroke();
@@ -688,7 +715,6 @@ function draw(){
     ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.strokeRect(60,42,240,11);
   }
 
-  // 💥 Πορωτικό Dynamic Combo Display (Πιο Χαμηλά στο Y=135)
   if(S.combo>3){
     ctx.save();
     const pulse=1+Math.sin(S.t*15)*0.1;
