@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Άγρια Κοτόπουλα - Remastered</title>
+<title>Άγρια Κοτόπουλα - Ultimate Night & Day Remastered</title>
 <style>
 :root{--bg:#07090e;--fg:#e8ecf4;--ac:#ff922b;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;align-items:center;justify-content:center;overflow:hidden;user-select:none;-webkit-user-select:none}
@@ -69,17 +69,20 @@ function playSound(type){
     o.type='sine';o.frequency.setValueAtTime(320,t);o.frequency.linearRampToValueAtTime(640,t+0.18);
     g.gain.setValueAtTime(0.12,t);g.gain.linearRampToValueAtTime(0.01,t+0.18);
     o.start(t);o.stop(t+0.18);
-  }else if(type==='stun'){
-    o.type='sawtooth';o.frequency.setValueAtTime(110,t);o.frequency.linearRampToValueAtTime(280,t+0.25);
-    g.gain.setValueAtTime(0.16,t);g.gain.linearRampToValueAtTime(0.01,t+0.25);
-    o.start(t);o.stop(t+0.25);
+  }else if(type==='tesla'){
+    o.type='sawtooth';o.frequency.setValueAtTime(1200,t);o.frequency.exponentialRampToValueAtTime(100,t+0.2);
+    g.gain.setValueAtTime(0.2,t);g.gain.linearRampToValueAtTime(0.01,t+0.2);
+    o.start(t);o.stop(t+0.2);
+  }else if(type==='tractor'){
+    o.type='triangle';o.frequency.setValueAtTime(80,t);o.frequency.linearRampToValueAtTime(200,t+0.5);
+    g.gain.setValueAtTime(0.25,t);g.gain.linearRampToValueAtTime(0.01,t+0.5);
+    o.start(t);o.stop(t+0.5);
   }
 }
 document.getElementById('snd').onclick=()=>{audioMuted=!audioMuted;document.getElementById('snd').textContent=audioMuted?'🔇':'🔊';};
 
-/* ---------- Top 5 High Scores (με Ονόματα) ---------- */
-let tops=[];
-try{tops=JSON.parse(localStorage.getItem('kd_top5')||'[]')}catch(e){}
+/* ---------- Top 5 High Scores ---------- */
+let tops=[];try{tops=JSON.parse(localStorage.getItem('kd_top5')||'[]')}catch(e){}
 let S=null,tx=W/2,keys={},last=0,seed=11,shake=0,millAngle=0;
 
 const mk=g=>({
@@ -116,8 +119,9 @@ function reset(){
   S={
     st:'play',t:0,px:W/2,n:1,
     lv:{r:1,l:0,c:0},ft:{r:0,l:0,c:0},
-    ch:[],eg:[],bl:[],bm:[],fx:[],tt:[],ex:[],bale:[],muzz:[],turrets:[],
-    sp:0,kills:0,bosses:0,flash:0,dm:1,rt:1,nm:120,bs:[],stun:0,numTurrets:0
+    ch:[],eg:[],bl:[],bm:[],fx:[],tt:[],ex:[],bale:[],muzz:[],turrets:[],tractors:[],
+    sp:0,kills:0,bosses:0,flash:0,dm:1,rt:1,nm:120,bs:[],stun:0,numTurrets:0,
+    hasTesla:false,freezeTimer:0,isNight:false
   };
   S.bale=[
     {x:65,y:LINE-18,hp:120,mhp:120},
@@ -128,15 +132,22 @@ function reset(){
 
 function spawn(){
   const t=S.t,r=Math.random();
-  const ty=t>40&&r<.22?2:(t>15&&r<.48?1:0);
-  const hp=(8+t*.18+t*t*.0008)*(ty==2?3.8:ty==1?.65:1);
-  const sp=(26+Math.min(t*.2,24)+Math.sqrt(t)*.5)*(ty==1?1.65:ty==2?.72:1);
+  // ty: 0:Απλό, 1:Γρήγορο, 2:Θωρακισμένο, 3:Ninja (μόνο νύχτα), 4:Kamikaze, 5:Splitter
+  let ty=0;
+  if(S.isNight&&r<.35)ty=3;
+  else if(t>45&&r<.2)ty=5;
+  else if(t>30&&r<.35)ty=4;
+  else if(t>25&&r<.55)ty=2;
+  else if(t>10&&r<.7)ty=1;
+
+  const hp=(8+t*.18+t*t*.0008)*(ty==2?3.8:ty==1||ty==3?.6:ty==4?.4:ty==5?2.2:1);
+  const sp=(26+Math.min(t*.2,24)+Math.sqrt(t)*.5)*(ty==1?1.65:ty==3?1.4:ty==4?2.1:ty==2?.72:1);
   const o={
-    ty,r:ty==2?19:ty==1?10:13,
+    ty,r:ty==2?19:ty==1||ty==3?10:ty==5?16:13,
     hp,mhp:hp,sp,
-    col:ty==0?'#ffffff':ty==1?'#ffe3c2':'#e0e0e0',
+    col:ty==0?'#ffffff':ty==1?'#ffe3c2':ty==2?'#e0e0e0':ty==3?'#22222b':ty==4?'#ff4444':'#e67e22',
     bx:30+Math.random()*(W-60),x:30+Math.random()*(W-60),y:-30,
-    ph:Math.random()*6,egg:Math.random()<.14,dt:.5+Math.random()*2.5,hitTimer:0
+    ph:Math.random()*6,egg:Math.random()<.14&&ty!=4,dt:.5+Math.random()*2.5,hitTimer:0
   };
   S.ch.push(o);
 }
@@ -161,6 +172,9 @@ const UP=[
   const tx=s.numTurrets==1?25:W-25;
   s.turrets.push({x:tx,y:LINE-35,cooldown:0});
 },ok:s=>s.numTurrets<2},
+{c:'Άμυνα',w:2,col:'#38d9a9',t:s=>'Tesla Φράχτης (Μόνιμος)',f:s=>{s.hasTesla=true;},ok:s=>!s.hasTesla},
+{c:'Υποστήριξη',w:1,col:'#ffd43b',t:s=>'Επισκευή Άχυρων (+60 HP)',f:s=>{s.bale.forEach(b=>{b.hp=Math.min(b.mhp,b.hp+60);});}},
+{c:'Επιδρομή',w:1,col:'#ff922b',t:s=>'Τρακτέρ Επιδρομή!',f:s=>{s.tractors.push({x:-40,y:LINE-30,sp:280});playSound('tractor');}},
 {c:'Ζημιά',w:1,col:'#ffd43b',t:s=>'+35% ζημιά',f:s=>{s.dm*=1.35}},
 {c:'Ταχύτητα',w:1,col:'#ffd43b',t:s=>'+25% ταχύτητα βολής',f:s=>{s.rt*=1.25}}
 ];
@@ -234,11 +248,10 @@ function fire(dt){
   }
 }
 
-/* ---------- Boss Spawn & Scaling Logic ---------- */
+/* ---------- Boss Spawn Logic ---------- */
 function spawnBoss(){
   const count=S.bosses>=2&&Math.random()<.5?2:1;
-  // Μεγαλύτερο εκθετικό scaling στο HP
-  const hp=(8000+Math.pow(1.35,S.bosses)*4000+S.t*40)*(count==2?.65:1);
+  const hp=(8500+Math.pow(1.36,S.bosses)*4200+S.t*45)*(count==2?.65:1);
   S.bs=[];
   for(let i=0;i<count;i++){
     const offsetX=(i-(count-1)/2)*90;
@@ -246,7 +259,7 @@ function spawnBoss(){
     S.ch.push(b);S.bs.push(b);
   }
   S.nm+=150+S.bosses*30;
-  text(W/2,H/2,count==2?'ΔΙΠΛΟΣ ΑΡΧΗΓΟΣ!':'ΑΡΧΗΓΟΣ ΚΟτόπουλο!','#ff6b6b');
+  text(W/2,H/2,count==2?'ΔΙΠΛΟΣ ΑΡΧΗΓΟΣ!':'ΑΡΧΗΓΟΣ ΚΟΤΟΠΟΥΛΟ!','#ff6b6b');
 }
 
 function bossUpd(c,dt){
@@ -255,7 +268,7 @@ function bossUpd(c,dt){
   if(c.st=='hover'){
     c.x=c.bx+Math.sin(S.t*.9+c.ph)*80;c.y=110+Math.sin(S.t*2.2+c.ph)*8;
     c.te-=dt;if(c.te<=0){
-      c.te=Math.max(.9,1.8-S.bosses*.2);
+      c.te=Math.max(.85,1.7-S.bosses*.2);
       for(let k=0;k<1;k++){
         const g=px(Math.floor(Math.random()*S.n)),T=(PY-14-c.y)/170;
         S.ch.push({ge:1,r:11,hp:25+S.t*.3,mhp:1,x:c.x,y:c.y+c.r,vx:(g-c.x)/T,sp:175,col:'#fff3bf',ph:0});
@@ -264,8 +277,12 @@ function bossUpd(c,dt){
     c.td-=dt;if(c.td<=0){c.st='warn';c.tm=0;c.tg=Math.floor(Math.random()*S.n);}return;
   }
   if(c.st=='warn'){if(c.tm<.7){const x=px(Math.min(c.tg,S.n-1));c.x+=Math.max(-340*dt,Math.min(340*dt,x-c.x));}if(c.tm>1.1)c.st='dive';return;}
-  if(c.st=='dive'){c.y+=580*dt;if(c.y>=PY-30)diveEnd(c);return;}
-  if(c.st=='back'){c.y-=250*dt;if(c.y<=110){c.y=110;c.st='hover';c.td=Math.max(3.5,7-S.bosses*.6);}}
+  if(c.st=='dive'){
+    // Ταχύτερη κατάδυση (dive speed) όσο αυξάνονται τα Bosses
+    const diveSp=580+S.bosses*35;
+    c.y+=diveSp*dt;if(c.y>=PY-30)diveEnd(c);return;
+  }
+  if(c.st=='back'){c.y-=250*dt;if(c.y<=110){c.y=110;c.st='hover';c.td=Math.max(3.0,6.5-S.bosses*.6);}}
 }
 
 function diveEnd(c){
@@ -283,6 +300,9 @@ function upd(dt){
   S.t+=dt;millAngle+=dt*0.8;
   if(shake>0)shake-=dt*22;
   
+  // Κύκλος Ημέρας / Νύχτας (κάθε 35 δευτερόλεπτα)
+  S.isNight=Math.floor(S.t/35)%2===1;
+
   let d=0;if(keys.ArrowLeft||keys.a)d--;if(keys.ArrowRight||keys.d)d++;if(d)tx+=d*440*dt;
   const half=(S.n-1)*Math.min(15,(W-50)/Math.max(1,S.n-1)/2)+16;
   tx=Math.max(half,Math.min(W-half,tx));
@@ -290,6 +310,13 @@ function upd(dt){
 
   S.sp-=dt;if(S.sp<=0){S.sp=Math.max(.18,1.0-S.t*.003)*(S.bs.length?1.6:1);const k=1+Math.floor(S.t/50);for(let i=0;i<k;i++)spawn();}
   if(S.stun>0)S.stun-=dt;else fire(dt);
+
+  // Ενημέρωση Τρακτέρ
+  for(const tr of S.tractors){
+    tr.x+=tr.sp*dt;
+    for(const c of S.ch)if(!c.boss&&Math.abs(c.x-tr.x)<35&&c.y>LINE-120){c.hp=-1;}
+  }
+  S.tractors=S.tractors.filter(tr=>tr.x<W+50);
 
   for(const c of S.ch){
     if(c.hitTimer>0)c.hitTimer-=dt;
@@ -299,7 +326,11 @@ function upd(dt){
       if(c.y>PY-14){c.hp=-1;S.stun=1.6;playSound('stun');boom(c.x,PY,'#ffe066',16);text(c.x,PY-40,'ΣΟΚ!','#ffe066');}
       continue;
     }
-    c.y+=c.sp*dt;c.x=Math.max(15,Math.min(W-15,c.bx+Math.sin(S.t*2+c.ph)*12));
+    c.y+=c.sp*dt;
+    // Ελιγμοί Ninja Κοτόπουλου (Zig-Zag)
+    if(c.ty==3)c.x=Math.max(15,Math.min(W-15,c.bx+Math.sin(S.t*6+c.ph)*45));
+    else c.x=Math.max(15,Math.min(W-15,c.bx+Math.sin(S.t*2+c.ph)*12));
+    
     if(c.egg&&c.y>30){c.dt-=dt;if(c.dt<=0){c.egg=false;S.eg.push({x:c.x,y:c.y+c.r,hp:25+S.t*.4,mhp:25+S.t*.4,vy:60});}}
   }
 
@@ -325,12 +356,19 @@ function upd(dt){
       if(S.bs.length===0){bd=true;S.bosses++;text(W/2,H/2,'Νίκησες τους Αρχηγούς!','#ffd43b');}
       boom(c.x,c.y,'#fff',40,1.8);boom(c.x,c.y,'#ffd43b',30,1.5);
     }else if(c.ge)boom(c.x,c.y,'#ffe066',8);
-    else{S.kills++;boom(c.x,c.y,c.ty==1?'#ffe3c2':c.ty==2?'#aaaaaa':'#ffffff',c.r>15?18:9);}
+    else{
+      if(c.ty==5){
+        // Splitter Chicken -> 3 μικρά κοτόπουλα
+        for(let k=-1;k<=1;k++){
+          S.ch.push({ty:1,r:9,hp:15+S.t*.2,mhp:15,sp:140,col:'#ffe3c2',bx:c.x+k*15,x:c.x+k*15,y:c.y,ph:Math.random()*6,egg:false,dt:99,hitTimer:0});
+        }
+      }
+      S.kills++;boom(c.x,c.y,c.ty==3?'#777':c.ty==4?'#ff4444':'#ffffff',c.r>15?18:9);
+    }
   }
   S.ch=S.ch.filter(c=>c.hp>0);
   
   if(bd){
-    // Έλεγχος αν δικαιούται upgrade (πρώτα 10 bosses -> κάθε φορά, μετά -> κάθε 5)
     const getsUpgrade=S.bosses<=10||(S.bosses>10&&(S.bosses-10)%5===0);
     if(getsUpgrade)milestone();
   }else if(S.bs.length===0&&S.kills>=S.nm)spawnBoss();
@@ -344,10 +382,18 @@ function upd(dt){
     for(const c of S.ch){
       if(c.boss||c.ge)continue;
       if(c.y+c.r>LINE-25){
+        // Έλεγχος Tesla Φράχτη (Καταστρέφεται με το πρώτο κοτόπουλο)
+        if(S.hasTesla&&c.y+c.r>LINE-32){
+          S.hasTesla=false;c.hp=-1;playSound('tesla');
+          boom(c.x,LINE-30,'#74c0fc',35,1.8);
+          text(c.x,LINE-45,'TESLA BOOM!','#74c0fc');
+          continue;
+        }
+
         let hitBale=false;
         for(const b of S.bale){
           if(b.hp>0&&Math.abs(c.x-b.x)<25){
-            b.hp-=35;c.hp=-1;hitBale=true;
+            b.hp-=c.ty==4?65:35;c.hp=-1;hitBale=true;
             boom(c.x,c.y,'#d9a74e',14);
             break;
           }
@@ -383,7 +429,7 @@ function over(){
   
   const isTop5=tops.length<5||sc>(tops[tops.length-1]?.s||0);
   if(isTop5){
-    ov.innerHTML='<h1>Νέο High Score!</h1><p>Σκορ '+sc+' · '+S.kills+' κοτόπουλα · '+t+'δ</p>'+
+    ov.innerHTML='<h1>Νέο High Score!</h1><p>Σκορ '+sc+' · '+S.kills+' κοτόπουλα · '+t+' s</p>'+
     '<input type="text" id="pname" class="name-in" placeholder="Δώσε όνομα..." maxlength="12" />'+
     '<button id="savebtn" class="b">Αποθήκευση</button>';
     document.getElementById('savebtn').onclick=()=>{
@@ -399,7 +445,7 @@ function over(){
 }
 
 function showGameOverScreen(sc,kills,t){
-  ov.innerHTML='<h1>Τα κοτόπουλα νίκησαν!</h1><p>Σκορ '+sc+' · '+kills+' κοτόπουλα · '+t+'δ</p>'+board();
+  ov.innerHTML='<h1>Τα κοτόπουλα νίκησαν!</h1><p>Σκορ '+sc+' · '+kills+' κοτόπουλα · '+t+' s</p>'+board();
   const b=document.createElement('button');b.className='b';b.textContent='Ξανά';b.onclick=()=>{ov.style.display='none';reset();};ov.appendChild(b);
 }
 
@@ -425,14 +471,20 @@ function chick(c){
   E(x-r*1.05,y,r*.4,r*.65,'#b0bec5',-.4+w);E(x+r*1.05,y,r*.4,r*.65,'#b0bec5',.4-w);
   const bodyCol=c.hitTimer>0?'#ff8888':c.col;
   E(x,y,r+1.5,r*.95+1.5,'#2c3e50');E(x,y,r,r*.95,bodyCol);
+  
   if(c.ty==2){
     R(x-r*.85,y-r*1.15,r*1.7,r*.75,'#607d8b');R(x-r*.95,y-r*.55,r*1.9,r*.25,'#37474f');E(x,y-r*.9,r*.3,r*.25,'#f44336');
+  }else if(c.ty==3){
+    // Ninja Κοτόπουλο - Κόκκινη Κορδέλα
+    R(x-r*.9,y-r*.4,r*1.8,r*.35,'#e74c3c');
   }
+
   E(x,hy,hr*1.1,hr*1.05,bodyCol);
   E(x,hy-hr*1.05,r*.22,r*.32,'#e74c3c');E(x-r*.18,hy-hr*.95,r*.16,r*.24,'#c0392b');E(x+r*.18,hy-hr*.95,r*.16,r*.24,'#c0392b');
   P([[x-hr*.38,hy+hr*.35],[x+hr*.38,hy+hr*.35],[x,hy+hr*1.25]],'#f39c12');
   E(x-hr*.42,hy-hr*.05,hr*.25,hr*.28,'#fff');E(x+hr*.42,hy-hr*.05,hr*.25,hr*.28,'#fff');
   E(x-hr*.42,hy,hr*.13,hr*.15,'#111');E(x+hr*.42,hy,hr*.13,hr*.15,'#111');
+  
   if(c.boss){
     P([[x-r*.55,y-r*1.0],[x-r*.45,y-r*1.55],[x-r*.18,y-r*1.15],[x,y-r*1.75],[x+r*.18,y-r*1.15],[x+r*.45,y-r*1.55],[x+r*.55,y-r*1.0]],'#f1c40f');
     E(x,y-r*1.35,3,3,'#e74c3c');
@@ -459,13 +511,34 @@ function drawTurret(tur){
   R(tur.x-3,tur.y-22,6,12,'#cbd5e0');
 }
 
+function drawTractor(tr){
+  R(tr.x-18,tr.y-14,36,22,'#e74c3c');
+  R(tr.x-10,tr.y-22,20,10,'#34495e');
+  E(tr.x-10,tr.y+8,8,8,'#111');E(tr.x+10,tr.y+8,8,8,'#111');
+}
+
 function draw(){
   ctx.save();
   if(shake>0)ctx.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake);
   ctx.drawImage(BG,0,0);
   
+  // Νυχτερινό Φίλτρο (Night Overlay)
+  if(S&&S.isNight){
+    ctx.fillStyle='rgba(5, 10, 35, 0.55)';
+    ctx.fillRect(0,0,W,H);
+  }
+
   drawWindmill();
 
+  // Tesla Φράχτης (Μόνιμος)
+  if(S&&S.hasTesla){
+    ctx.strokeStyle='rgba(116, 192, 252, '+(.7+.3*Math.sin(S.t*18))+')';
+    ctx.lineWidth=4;ctx.shadowColor='#74c0fc';ctx.shadowBlur=10;
+    ctx.beginPath();ctx.moveTo(14,LINE-30);ctx.lineTo(W-14,LINE-30);ctx.stroke();
+    ctx.shadowBlur=0;
+  }
+
+  // Κόκκινη γραμμή άμυνας
   ctx.lineWidth=4;ctx.setLineDash([10,8]);ctx.strokeStyle='#e74c3c';
   ctx.shadowColor='#e74c3c';ctx.shadowBlur=8;
   ctx.beginPath();ctx.moveTo(14,LINE);ctx.lineTo(W-14,LINE);ctx.stroke();
@@ -481,6 +554,7 @@ function draw(){
   }
 
   S.turrets.forEach(drawTurret);
+  S.tractors.forEach(drawTractor);
 
   for(const B of S.bs){
     if(B&&(B.st=='warn'||B.st=='dive')){
@@ -545,7 +619,7 @@ function draw(){
     ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.strokeRect(60,42,240,11);
   }
 
-  ctx.fillStyle='#fff';ctx.font='800 14px system-ui';ctx.textAlign='left';ctx.fillText(Math.floor(S.t)+'δ',50,23);
+  ctx.fillStyle='#fff';ctx.font='800 14px system-ui';ctx.textAlign='left';ctx.fillText(Math.floor(S.t)+' s',50,23);
   ctx.textAlign='right';ctx.fillText('Κοτόπουλα '+S.kills,W-50,23);
   ctx.textAlign='center';ctx.font='600 11.5px system-ui';ctx.fillText('Τουφ.'+S.lv.r+(S.lv.l?' Λέιζ.'+S.lv.l:'')+(S.lv.c?' Καν.'+S.lv.c:'')+' · Turrets '+S.numTurrets+'/2',W/2,H-8);
   ctx.restore();
