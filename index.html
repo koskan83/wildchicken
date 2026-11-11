@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Άγρια Κοτόπουλα - Ultimate Night & Day Remastered</title>
+<title>Άγρια Κοτόπουλα - Brainless Survivor Remastered</title>
 <style>
 :root{--bg:#07090e;--fg:#e8ecf4;--ac:#ff922b;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;align-items:center;justify-content:center;overflow:hidden;user-select:none;-webkit-user-select:none}
 #wrap{position:relative;line-height:0}
 canvas{background:#4d8b28;border-radius:16px;touch-action:none;display:block;box-shadow:0 12px 40px rgba(0,0,0,0.65), 0 0 0 2px rgba(255,255,255,0.1)}
-#ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:20px;background:rgba(6,8,14,.93);border-radius:16px;line-height:1.4;text-align:center;color:#e8ecf4;backdrop-filter:blur(6px)}
-#ov h1{margin:0;font-size:26px;color:#ffd43b;text-shadow:0 2px 8px rgba(255,212,59,0.3)}
+#ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px;background:rgba(6,8,14,.94);border-radius:16px;line-height:1.4;text-align:center;color:#e8ecf4;backdrop-filter:blur(8px)}
+#ov h1{margin:0;font-size:26px;color:#ffd43b;text-shadow:0 2px 10px rgba(255,212,59,0.5)}
 #ov p{margin:0;font-size:13px;opacity:.9;max-width:310px}
 .top-btn{position:absolute;top:10px;width:38px;height:34px;border:1px solid rgba(255,255,255,0.25);border-radius:10px;background:rgba(0,0,0,0.55);color:#fff;font-size:16px;line-height:1;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;z-index:10;backdrop-filter:blur(4px)}
 .top-btn:active{transform:scale(0.92)}
@@ -18,6 +18,10 @@ canvas{background:#4d8b28;border-radius:16px;touch-action:none;display:block;box
 #snd{right:10px}
 .b{background:linear-gradient(135deg, #ff922b, #e8590c);color:#fff;border:0;border-radius:12px;padding:12px 24px;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 4px 15px rgba(232,89,12,0.4);transition:transform 0.1s;width:100%;max-width:280px;text-transform:uppercase;letter-spacing:0.5px}
 .b:active{transform:scale(0.95)}
+.b-upg{background:linear-gradient(135deg, #1e2638, #111622);border:2px solid #ffd43b;box-shadow:0 0 15px rgba(255,212,59,0.25);text-align:left;padding:12px 16px;border-radius:14px;position:relative;overflow:hidden}
+.b-upg.legendary{border-color:#cc5de8;box-shadow:0 0 18px rgba(204,93,232,0.4)}
+.b-upg small{display:block;font-size:11px;font-weight:700;letter-spacing:1px;color:#ffd43b;margin-bottom:2px}
+.b-upg.legendary small{color:#cc5de8}
 .b-sec{background:rgba(255,255,255,0.15);box-shadow:none;border:1px solid rgba(255,255,255,0.3)}
 .name-in{background:rgba(255,255,255,0.1);border:1px solid #ffd43b;border-radius:8px;padding:8px 12px;color:#fff;font-size:16px;text-align:center;width:100%;max-width:200px;outline:none}
 </style>
@@ -31,7 +35,7 @@ canvas{background:#4d8b28;border-radius:16px;touch-action:none;display:block;box
 </div>
 <script>
 const cv=document.getElementById('c'),ctx=cv.getContext('2d'),ov=document.getElementById('ov');
-const W=360,H=640,PY=H-48,LINE=H-95;
+const W=360,H=640,PY=H-48,LINE=H-95,TESLA_Y=LINE-140;
 function fit(){const s=Math.min(innerWidth/W,innerHeight/H,1.6);cv.style.width=W*s+'px';cv.style.height=H*s+'px';}
 addEventListener('resize',fit);fit();
 
@@ -70,13 +74,13 @@ function playSound(type){
     g.gain.setValueAtTime(0.12,t);g.gain.linearRampToValueAtTime(0.01,t+0.18);
     o.start(t);o.stop(t+0.18);
   }else if(type==='tesla'){
-    o.type='sawtooth';o.frequency.setValueAtTime(1200,t);o.frequency.exponentialRampToValueAtTime(100,t+0.2);
-    g.gain.setValueAtTime(0.2,t);g.gain.linearRampToValueAtTime(0.01,t+0.2);
-    o.start(t);o.stop(t+0.2);
+    o.type='sawtooth';o.frequency.setValueAtTime(1200,t);o.frequency.exponentialRampToValueAtTime(100,t+0.25);
+    g.gain.setValueAtTime(0.22,t);g.gain.linearRampToValueAtTime(0.01,t+0.25);
+    o.start(t);o.stop(t+0.25);
   }else if(type==='tractor'){
-    o.type='triangle';o.frequency.setValueAtTime(80,t);o.frequency.linearRampToValueAtTime(200,t+0.5);
-    g.gain.setValueAtTime(0.25,t);g.gain.linearRampToValueAtTime(0.01,t+0.5);
-    o.start(t);o.stop(t+0.5);
+    o.type='triangle';o.frequency.setValueAtTime(80,t);o.frequency.linearRampToValueAtTime(220,t+0.6);
+    g.gain.setValueAtTime(0.25,t);g.gain.linearRampToValueAtTime(0.01,t+0.6);
+    o.start(t);o.stop(t+0.6);
   }
 }
 document.getElementById('snd').onclick=()=>{audioMuted=!audioMuted;document.getElementById('snd').textContent=audioMuted?'🔇':'🔊';};
@@ -119,9 +123,9 @@ function reset(){
   S={
     st:'play',t:0,px:W/2,n:1,
     lv:{r:1,l:0,c:0},ft:{r:0,l:0,c:0},
-    ch:[],eg:[],bl:[],bm:[],fx:[],tt:[],ex:[],bale:[],muzz:[],turrets:[],tractors:[],
+    ch:[],eg:[],bl:[],bm:[],fx:[],tt:[],ex:[],bale:[],muzz:[],turrets:[],tractors:[],dmgPopups:[],gems:[],
     sp:0,kills:0,bosses:0,flash:0,dm:1,rt:1,nm:120,bs:[],stun:0,numTurrets:0,
-    hasTesla:false,freezeTimer:0,isNight:false
+    hasTesla:false,isNight:false,combo:0,comboTimer:0
   };
   S.bale=[
     {x:65,y:LINE-18,hp:120,mhp:120},
@@ -132,7 +136,6 @@ function reset(){
 
 function spawn(){
   const t=S.t,r=Math.random();
-  // ty: 0:Απλό, 1:Γρήγορο, 2:Θωρακισμένο, 3:Ninja (μόνο νύχτα), 4:Kamikaze, 5:Splitter
   let ty=0;
   if(S.isNight&&r<.35)ty=3;
   else if(t>45&&r<.2)ty=5;
@@ -159,6 +162,9 @@ function boom(x,y,c,n,scale=1){
   }
 }
 function text(x,y,s,c){S.tt.push({x,y,s,c,l:1.6});}
+function dmgPopup(x,y,val,isCrit=false){
+  S.dmgPopups.push({x,y,val:Math.round(val),isCrit,l:0.8,vy:-35});
+}
 function px(i){return S.px+(i-(S.n-1)/2)*Math.min(30,(W-50)/Math.max(1,S.n-1));}
 
 /* ---------- Upgrades ---------- */
@@ -170,11 +176,14 @@ const UP=[
 {c:'Turret',w:2,col:'#cc5de8',t:s=>'Νέο Turret ('+(s.numTurrets+1)+'/2)',f:s=>{
   s.numTurrets++;
   const tx=s.numTurrets==1?25:W-25;
-  s.turrets.push({x:tx,y:LINE-35,cooldown:0});
-},ok:s=>s.numTurrets<2},
-{c:'Άμυνα',w:2,col:'#38d9a9',t:s=>'Tesla Φράχτης (Μόνιμος)',f:s=>{s.hasTesla=true;},ok:s=>!s.hasTesla},
+  s.turrets.push({x:tx,y:LINE-35,hp:100,mhp:100,cooldown:0});
+},ok:s=>s.numTurrets<2,leg:true},
+{c:'Άμυνα',w:2,col:'#38d9a9',t:s=>'Tesla Φράχτης (Υψωμένος)',f:s=>{s.hasTesla=true;},ok:s=>!s.hasTesla,leg:true},
 {c:'Υποστήριξη',w:1,col:'#ffd43b',t:s=>'Επισκευή Άχυρων (+60 HP)',f:s=>{s.bale.forEach(b=>{b.hp=Math.min(b.mhp,b.hp+60);});}},
-{c:'Επιδρομή',w:1,col:'#ff922b',t:s=>'Τρακτέρ Επιδρομή!',f:s=>{s.tractors.push({x:-40,y:LINE-30,sp:280});playSound('tractor');}},
+{c:'Επιδρομή',w:1,col:'#ff922b',t:s=>'Τρακτέρ Επιδρομή (Κάθετη)!',f:s=>{
+  // Τρακτέρ που τρέχει κατακόρυφα προς τα πάνω στη φορά των σφαιρών!
+  s.tractors.push({x:W/2,y:H+40,sp:320});playSound('tractor');
+},leg:true},
 {c:'Ζημιά',w:1,col:'#ffd43b',t:s=>'+35% ζημιά',f:s=>{s.dm*=1.35}},
 {c:'Ταχύτητα',w:1,col:'#ffd43b',t:s=>'+25% ταχύτητα βολής',f:s=>{s.rt*=1.25}}
 ];
@@ -190,7 +199,9 @@ function upgrade(x,y){
 function expl(b){
   shake=7;
   S.ex.push({x:b.x,y:b.y,r:b.rad,l:.35,m:.35});
-  for(const c of S.ch)if(Math.hypot(c.x-b.x,c.y-b.y)<b.rad+c.r){c.hp-=b.d;c.hitTimer=.15;}
+  for(const c of S.ch)if(Math.hypot(c.x-b.x,c.y-b.y)<b.rad+c.r){
+    c.hp-=b.d;c.hitTimer=.15;dmgPopup(c.x,c.y,b.d,true);
+  }
   for(const e of S.eg)if(Math.hypot(e.x-b.x,e.y-b.y)<b.rad+10)e.hp-=b.d;
   boom(b.x,b.y,'#ffb347',18,1.3);
 }
@@ -218,7 +229,7 @@ function fire(dt){
       const bw=12+Math.min(14,2*L.l),dg=45*(1+.25*(L.l-1))*S.dm;
       for(let i=0;i<S.n;i++){
         const bx=px(i);S.bm.push({x:bx,w:bw,l:.25,m:.25});
-        for(const c of S.ch)if(c.y>0&&Math.abs(c.x-bx)<c.r+bw/2){c.hp-=dg;c.hitTimer=.12;}
+        for(const c of S.ch)if(c.y>0&&Math.abs(c.x-bx)<c.r+bw/2){c.hp-=dg;c.hitTimer=.12;dmgPopup(c.x,c.y,dg);}
         for(const e of S.eg)if(e.y>0&&Math.abs(e.x-bx)<13+bw/2)e.hp-=dg;
       }
     }
@@ -248,11 +259,10 @@ function fire(dt){
   }
 }
 
-/* ---------- Boss Spawn Logic ---------- */
+/* ---------- Boss Spawn Logic (Timer & Multi-Bosses) ---------- */
 function spawnBoss(){
   const count=S.bosses>=2&&Math.random()<.5?2:1;
   const hp=(8500+Math.pow(1.36,S.bosses)*4200+S.t*45)*(count==2?.65:1);
-  S.bs=[];
   for(let i=0;i<count;i++){
     const offsetX=(i-(count-1)/2)*90;
     const b={boss:1,r:46,hp,mhp:hp,col:'#ffe08a',x:W/2+offsetX,y:-70,bx:W/2+offsetX,ph:i,st:'in',tm:0,te:1.5,td:6,tx:W/2,tg:0,hitTimer:0};
@@ -278,7 +288,6 @@ function bossUpd(c,dt){
   }
   if(c.st=='warn'){if(c.tm<.7){const x=px(Math.min(c.tg,S.n-1));c.x+=Math.max(-340*dt,Math.min(340*dt,x-c.x));}if(c.tm>1.1)c.st='dive';return;}
   if(c.st=='dive'){
-    // Ταχύτερη κατάδυση (dive speed) όσο αυξάνονται τα Bosses
     const diveSp=580+S.bosses*35;
     c.y+=diveSp*dt;if(c.y>=PY-30)diveEnd(c);return;
   }
@@ -287,6 +296,16 @@ function bossUpd(c,dt){
 
 function diveEnd(c){
   shake=14;
+  // Έλεγχος αν χτυπάει Turret
+  for(const tur of S.turrets){
+    if(tur.hp>0&&Math.hypot(tur.x-c.x,tur.y-c.y)<45){
+      tur.hp-=40; // Το Boss κάνει damage στο Turret
+      boom(tur.x,tur.y,'#cc5de8',18);
+      text(tur.x,tur.y-20,'TURRET HIT!','#cc5de8');
+    }
+  }
+  S.turrets=S.turrets.filter(t=>t.hp>0);
+
   let bi=-1,bd=1e9;for(let i=0;i<S.n;i++){const d=Math.abs(px(i)-c.x);if(d<c.r*.85&&d<bd){bd=d;bi=i;}}
   if(bi>=0){
     boom(px(bi),PY,'#ff6b6b',30,1.5);text(W/2,PY-70,'Έφαγε έναν παίκτη!','#ff8787');
@@ -300,7 +319,6 @@ function upd(dt){
   S.t+=dt;millAngle+=dt*0.8;
   if(shake>0)shake-=dt*22;
   
-  // Κύκλος Ημέρας / Νύχτας (κάθε 35 δευτερόλεπτα)
   S.isNight=Math.floor(S.t/35)%2===1;
 
   let d=0;if(keys.ArrowLeft||keys.a)d--;if(keys.ArrowRight||keys.d)d++;if(d)tx+=d*440*dt;
@@ -311,12 +329,12 @@ function upd(dt){
   S.sp-=dt;if(S.sp<=0){S.sp=Math.max(.18,1.0-S.t*.003)*(S.bs.length?1.6:1);const k=1+Math.floor(S.t/50);for(let i=0;i<k;i++)spawn();}
   if(S.stun>0)S.stun-=dt;else fire(dt);
 
-  // Ενημέρωση Τρακτέρ
+  // Ενημέρωση Τρακτέρ (Κάθετη κίνηση προς τα πάνω στη φορά των σφαιρών)
   for(const tr of S.tractors){
-    tr.x+=tr.sp*dt;
-    for(const c of S.ch)if(!c.boss&&Math.abs(c.x-tr.x)<35&&c.y>LINE-120){c.hp=-1;}
+    tr.y-=tr.sp*dt;
+    for(const c of S.ch)if(!c.boss&&Math.abs(c.x-tr.x)<45&&Math.abs(c.y-tr.y)<35){c.hp=-1;}
   }
-  S.tractors=S.tractors.filter(tr=>tr.x<W+50);
+  S.tractors=S.tractors.filter(tr=>tr.y>-50);
 
   for(const c of S.ch){
     if(c.hitTimer>0)c.hitTimer-=dt;
@@ -327,7 +345,6 @@ function upd(dt){
       continue;
     }
     c.y+=c.sp*dt;
-    // Ελιγμοί Ninja Κοτόπουλου (Zig-Zag)
     if(c.ty==3)c.x=Math.max(15,Math.min(W-15,c.bx+Math.sin(S.t*6+c.ph)*45));
     else c.x=Math.max(15,Math.min(W-15,c.bx+Math.sin(S.t*2+c.ph)*12));
     
@@ -338,7 +355,9 @@ function upd(dt){
   for(const b of S.bl){
     b.x+=b.vx*dt;b.y+=b.vy*dt;let hit=false;
     for(const e of S.eg)if(Math.hypot(e.x-b.x,e.y-b.y)<(b.cn?18:13)){hit=true;if(!b.cn)e.hp-=b.d;break;}
-    if(!hit)for(const c of S.ch)if(Math.hypot(c.x-b.x,c.y+c.r*.3-b.y)<c.r+(b.cn?8:3)){hit=true;if(!b.cn){c.hp-=b.d;c.hitTimer=.12;}break;}
+    if(!hit)for(const c of S.ch)if(Math.hypot(c.x-b.x,c.y+c.r*.3-b.y)<c.r+(b.cn?8:3)){
+      hit=true;if(!b.cn){c.hp-=b.d;c.hitTimer=.12;dmgPopup(c.x,c.y,b.d);}break;
+    }
     if(b.cn&&(hit||b.y<80)){expl(b);b.dead=1;}
     else if(hit||b.y<-10||b.x<-10||b.x>W+10||b.y>H+10){b.dead=1;if(hit){playSound('hit');boom(b.x,b.y,'#fff',3);}}
   }
@@ -358,38 +377,51 @@ function upd(dt){
     }else if(c.ge)boom(c.x,c.y,'#ffe066',8);
     else{
       if(c.ty==5){
-        // Splitter Chicken -> 3 μικρά κοτόπουλα
         for(let k=-1;k<=1;k++){
           S.ch.push({ty:1,r:9,hp:15+S.t*.2,mhp:15,sp:140,col:'#ffe3c2',bx:c.x+k*15,x:c.x+k*15,y:c.y,ph:Math.random()*6,egg:false,dt:99,hitTimer:0});
         }
       }
-      S.kills++;boom(c.x,c.y,c.ty==3?'#777':c.ty==4?'#ff4444':'#ffffff',c.r>15?18:9);
+      S.kills++;
+      S.combo++;S.comboTimer=2.0;
+      // Spawn Star Gem
+      S.gems.push({x:c.x,y:c.y,vy:-30,l:1.2});
+      boom(c.x,c.y,c.ty==3?'#777':c.ty==4?'#ff4444':'#ffffff',c.r>15?18:9);
     }
   }
   S.ch=S.ch.filter(c=>c.hp>0);
   
+  if(S.comboTimer>0){S.comboTimer-=dt;if(S.comboTimer<=0)S.combo=0;}
+
+  // Αν καθυστερήσει να καταστραφεί το Boss, το επόμενο Boss έρχεται στην ώρα του!
+  if(S.kills>=S.nm){
+    spawnBoss();
+  }
+
   if(bd){
     const getsUpgrade=S.bosses<=10||(S.bosses>10&&(S.bosses-10)%5===0);
     if(getsUpgrade)milestone();
-  }else if(S.bs.length===0&&S.kills>=S.nm)spawnBoss();
+  }
 
   for(const f of S.fx){f.x+=f.vx*dt;f.y+=f.vy*dt;f.l-=dt;}S.fx=S.fx.filter(f=>f.l>0);
   for(const q of S.ex)q.l-=dt;S.ex=S.ex.filter(q=>q.l>0);
   for(const q of S.tt){q.y-=25*dt;q.l-=dt;}S.tt=S.tt.filter(q=>q.l>0);
+  for(const p of S.dmgPopups){p.y+=p.vy*dt;p.l-=dt;}S.dmgPopups=S.dmgPopups.filter(p=>p.l>0);
+  for(const g of S.gems){g.y+=g.vy*dt;g.l-=dt;}S.gems=S.gems.filter(g=>g.l>0);
   if(S.flash>0)S.flash-=dt;
 
   if(S.st=='play'){
     for(const c of S.ch){
       if(c.boss||c.ge)continue;
-      if(c.y+c.r>LINE-25){
-        // Έλεγχος Tesla Φράχτη (Καταστρέφεται με το πρώτο κοτόπουλο)
-        if(S.hasTesla&&c.y+c.r>LINE-32){
-          S.hasTesla=false;c.hp=-1;playSound('tesla');
-          boom(c.x,LINE-30,'#74c0fc',35,1.8);
-          text(c.x,LINE-45,'TESLA BOOM!','#74c0fc');
-          continue;
-        }
+      
+      // Υψωμένος Tesla Φράχτης (TESLA_Y = LINE - 140)
+      if(S.hasTesla&&c.y+c.r>=TESLA_Y){
+        S.hasTesla=false;c.hp=-1;playSound('tesla');
+        boom(c.x,TESLA_Y,'#74c0fc',40,2);
+        text(c.x,TESLA_Y-15,'TESLA DISCHARGE!','#74c0fc');
+        continue;
+      }
 
+      if(c.y+c.r>LINE-25){
         let hitBale=false;
         for(const b of S.bale){
           if(b.hp>0&&Math.abs(c.x-b.x)<25){
@@ -409,9 +441,10 @@ function milestone(){
   while(ch.length<3&&o.length)ch.push(o.splice(Math.floor(Math.random()*o.length),1)[0]);
   ov.style.display='flex';ov.innerHTML='<h1>Ο αρχηγός νικήθηκε!</h1><p>Διάλεξε αναβάθμιση:</p>';
   ch.forEach(u=>{
-    const b=document.createElement('button');b.className='b';
-    b.style.cssText='width:100%;max-width:300px;text-align:left;margin-bottom:6px';
-    b.innerHTML='<small style="display:block;font-size:11px;opacity:.85">'+u.c+'</small>'+u.t(S);
+    const b=document.createElement('button');
+    b.className='b b-upg'+(u.leg?' legendary':'');
+    b.style.cssText='width:100%;max-width:300px;margin-bottom:6px';
+    b.innerHTML='<small>'+u.c+(u.leg?' ★ LEGENDARY':'')+'</small><span style="font-weight:800;font-size:15px;color:#fff">'+u.t(S)+'</span>';
     b.onclick=()=>{u.f(S);ov.style.display='none';S.st='play';};
     ov.appendChild(b);
   });
@@ -475,7 +508,6 @@ function chick(c){
   if(c.ty==2){
     R(x-r*.85,y-r*1.15,r*1.7,r*.75,'#607d8b');R(x-r*.95,y-r*.55,r*1.9,r*.25,'#37474f');E(x,y-r*.9,r*.3,r*.25,'#f44336');
   }else if(c.ty==3){
-    // Ninja Κοτόπουλο - Κόκκινη Κορδέλα
     R(x-r*.9,y-r*.4,r*1.8,r*.35,'#e74c3c');
   }
 
@@ -509,12 +541,17 @@ function drawTurret(tur){
   R(tur.x-14,tur.y-5,28,15,'#4a5568');
   R(tur.x-10,tur.y-14,20,10,'#2d3748');
   R(tur.x-3,tur.y-22,6,12,'#cbd5e0');
+  if(tur.hp<tur.mhp){
+    R(tur.x-14,tur.y-28,28,3,'rgba(0,0,0,0.6)');
+    R(tur.x-14,tur.y-28,28*(tur.hp/tur.mhp),3,'#cc5de8');
+  }
 }
 
 function drawTractor(tr){
-  R(tr.x-18,tr.y-14,36,22,'#e74c3c');
-  R(tr.x-10,tr.y-22,20,10,'#34495e');
-  E(tr.x-10,tr.y+8,8,8,'#111');E(tr.x+10,tr.y+8,8,8,'#111');
+  // Κάθετο Τρακτέρ που τρέχει προς τα πάνω
+  R(tr.x-16,tr.y-25,32,50,'#e74c3c');
+  R(tr.x-12,tr.y-10,24,18,'#34495e');
+  E(tr.x-18,tr.y+12,7,12,'#111');E(tr.x+18,tr.y+12,7,12,'#111');
 }
 
 function draw(){
@@ -522,7 +559,6 @@ function draw(){
   if(shake>0)ctx.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake);
   ctx.drawImage(BG,0,0);
   
-  // Νυχτερινό Φίλτρο (Night Overlay)
   if(S&&S.isNight){
     ctx.fillStyle='rgba(5, 10, 35, 0.55)';
     ctx.fillRect(0,0,W,H);
@@ -530,11 +566,11 @@ function draw(){
 
   drawWindmill();
 
-  // Tesla Φράχτης (Μόνιμος)
+  // Υψωμένος Tesla Φράχτης (TESLA_Y)
   if(S&&S.hasTesla){
-    ctx.strokeStyle='rgba(116, 192, 252, '+(.7+.3*Math.sin(S.t*18))+')';
-    ctx.lineWidth=4;ctx.shadowColor='#74c0fc';ctx.shadowBlur=10;
-    ctx.beginPath();ctx.moveTo(14,LINE-30);ctx.lineTo(W-14,LINE-30);ctx.stroke();
+    ctx.strokeStyle='rgba(116, 192, 252, '+(.75+.25*Math.sin(S.t*20))+')';
+    ctx.lineWidth=5;ctx.shadowColor='#74c0fc';ctx.shadowBlur=12;
+    ctx.beginPath();ctx.moveTo(14,TESLA_Y);ctx.lineTo(W-14,TESLA_Y);ctx.stroke();
     ctx.shadowBlur=0;
   }
 
@@ -603,6 +639,21 @@ function draw(){
     ctx.beginPath();ctx.arc(f.x,f.y,f.r||2.5,0,6.28);ctx.fill();
   }ctx.globalAlpha=1;
 
+  // Star Gems
+  for(const g of S.gems){
+    ctx.globalAlpha=Math.max(0,g.l);
+    ctx.fillStyle='#ffd43b';E(g.x,g.y,4,4,'#ffd43b');
+  }ctx.globalAlpha=1;
+
+  // Damage Popups
+  ctx.font='900 13px system-ui';ctx.textAlign='center';
+  for(const p of S.dmgPopups){
+    ctx.globalAlpha=Math.max(0,p.l);
+    ctx.fillStyle=p.isCrit?'#ff6b6b':'#ffffff';
+    ctx.fillText(p.val,p.x,p.y);
+  }ctx.globalAlpha=1;
+
+  // Text Popups
   ctx.font='800 15px system-ui';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='rgba(0,0,0,.8)';
   for(const q of S.tt){
     const tx2=Math.max(90,Math.min(W-90,q.x));
@@ -617,6 +668,12 @@ function draw(){
     R(60,42,240,11,'rgba(0,0,0,0.6)');
     R(60,42,240*(bTotalHp/bMaxHp),11,'#e74c3c');
     ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.strokeRect(60,42,240,11);
+  }
+
+  // Combo UI Display
+  if(S.combo>5){
+    ctx.fillStyle='#ffd43b';ctx.font='900 16px system-ui';ctx.textAlign='center';
+    ctx.fillText(S.combo+'x COMBO!',W/2,75);
   }
 
   ctx.fillStyle='#fff';ctx.font='800 14px system-ui';ctx.textAlign='left';ctx.fillText(Math.floor(S.t)+' s',50,23);
