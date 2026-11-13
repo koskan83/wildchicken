@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Άγρια Κοτόπουλα - Global Leaderboard Edition (Top 10)</title>
+<title>Άγρια Κοτόπουλα - Ultimate Weather & Evolution Edition</title>
 <!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
@@ -12,20 +12,20 @@
 html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;align-items:center;justify-content:center;overflow:hidden;user-select:none;-webkit-user-select:none}
 #wrap{position:relative;line-height:0}
 canvas{background:#4d8b28;border-radius:16px;touch-action:none;display:block;box-shadow:0 12px 40px rgba(0,0,0,0.65), 0 0 0 2px rgba(255,255,255,0.1)}
-#ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px;background:rgba(6,8,14,.94);border-radius:16px;line-height:1.4;text-align:center;color:#e8ecf4;backdrop-filter:blur(8px)}
-#ov h1{margin:0;font-size:24px;color:#ffd43b;text-shadow:0 2px 10px rgba(255,212,59,0.5)}
-#ov p{margin:0;font-size:12px;opacity:.9;max-width:310px}
+#ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;background:rgba(6,8,14,.94);border-radius:16px;line-height:1.4;text-align:center;color:#e8ecf4;backdrop-filter:blur(8px)}
+#ov h1{margin:0;font-size:26px;color:#ffd43b;text-shadow:0 2px 10px rgba(255,212,59,0.5)}
+#ov p{margin:0;font-size:13px;opacity:.9;max-width:310px}
 .top-btn{position:absolute;top:10px;width:38px;height:34px;border:1px solid rgba(255,255,255,0.25);border-radius:10px;background:rgba(0,0,0,0.55);color:#fff;font-size:16px;line-height:1;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;z-index:10;backdrop-filter:blur(4px)}
 .top-btn:active{transform:scale(0.92)}
 #pz{left:10px}
 #snd{right:10px}
-.b{background:linear-gradient(135deg, #ff922b, #e8590c);color:#fff;border:0;border-radius:12px;padding:12px 24px;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 4px 15px rgba(232,89,12,0.4);transition:transform 0.1s;width:100%;max-width:280px;text-transform:uppercase;letter-spacing:0.5px}
+.b{background:linear-gradient(135deg, #ff922b, #e8590c);color:#fff;border:0;border-radius:12px;padding:12px 24px;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 4px 15px rgba(232,89,12,0.4);transition:transform 0.1s;width:100%;max-width:260px;text-transform:uppercase;letter-spacing:0.5px}
 .b:active{transform:scale(0.95)}
 .b-upg{background:linear-gradient(135deg, #1e2638, #111622);border:2px solid #ffd43b;box-shadow:0 0 15px rgba(255,212,59,0.25);text-align:left;padding:12px 16px;border-radius:14px;position:relative;overflow:hidden}
 .b-upg.legendary{border-color:#cc5de8;box-shadow:0 0 18px rgba(204,93,232,0.4)}
 .b-upg small{display:block;font-size:11px;font-weight:700;letter-spacing:1px;color:#ffd43b;margin-bottom:2px}
 .b-upg.legendary small{color:#cc5de8}
-.b-sec{background:rgba(255,255,255,0.15);box-shadow:none;border:1px solid rgba(255,255,255,0.3)}
+.b-sec{background:rgba(255,255,255,0.12);box-shadow:none;border:1px solid rgba(255,255,255,0.28)}
 .name-in{background:rgba(255,255,255,0.1);border:1px solid #ffd43b;border-radius:8px;padding:8px 12px;color:#fff;font-size:16px;text-align:center;width:100%;max-width:200px;outline:none}
 </style>
 </head>
@@ -61,12 +61,19 @@ db.ref('scores').orderByChild('s').limitToLast(10).on('value', snapshot => {
   }
 });
 
-function saveGlobalScore(name, sc, kills, t) {
+function fmtTime(sec) {
+  const s = Math.floor(sec || 0);
+  const m = Math.floor(s / 60);
+  const rem = s % 60;
+  return String(m).padStart(2, '0') + ':' + String(rem).padStart(2, '0');
+}
+
+function saveGlobalScore(name, sc, kills, tSec) {
   db.ref('scores').push({
     n: name,
     s: sc,
     k: kills,
-    t: t,
+    t: fmtTime(tSec),
     ts: Date.now()
   });
 }
@@ -114,14 +121,18 @@ function playSound(type){
     o.type='triangle';o.frequency.setValueAtTime(400,t);o.frequency.linearRampToValueAtTime(850,t+0.4);
     g.gain.setValueAtTime(0.25,t);g.gain.linearRampToValueAtTime(0.01,t+0.4);
     o.start(t);o.stop(t+0.4);
-  }else if(type==='tesla'){
-    o.type='sawtooth';o.frequency.setValueAtTime(1200,t);o.frequency.exponentialRampToValueAtTime(100,t+0.25);
-    g.gain.setValueAtTime(0.22,t);g.gain.linearRampToValueAtTime(0.01,t+0.25);
-    o.start(t);o.stop(t+0.25);
+  }else if(type==='tesla'||type==='thunder'){
+    o.type='sawtooth';o.frequency.setValueAtTime(1200,t);o.frequency.exponentialRampToValueAtTime(80,t+0.3);
+    g.gain.setValueAtTime(0.24,t);g.gain.linearRampToValueAtTime(0.01,t+0.3);
+    o.start(t);o.stop(t+0.3);
   }else if(type==='tractor'){
     o.type='triangle';o.frequency.setValueAtTime(80,t);o.frequency.linearRampToValueAtTime(220,t+0.6);
     g.gain.setValueAtTime(0.25,t);g.gain.linearRampToValueAtTime(0.01,t+0.6);
     o.start(t);o.stop(t+0.6);
+  }else if(type==='barn'){
+    o.type='sine';o.frequency.setValueAtTime(550,t);o.frequency.setValueAtTime(750,t+0.1);
+    g.gain.setValueAtTime(0.18,t);g.gain.linearRampToValueAtTime(0.01,t+0.25);
+    o.start(t);o.stop(t+0.25);
   }
 }
 document.getElementById('snd').onclick=()=>{audioMuted=!audioMuted;document.getElementById('snd').textContent=audioMuted?'🔇':'🔊';};
@@ -163,14 +174,18 @@ function reset(){
     st:'play',t:0,px:W/2,n:1,
     lv:{r:1,l:0,c:0},ft:{r:0,l:0,c:0},
     ch:[],eg:[],bl:[],bm:[],fx:[],tt:[],ex:[],bale:[],muzz:[],turrets:[],tractors:[],dmgPopups:[],gems:[],
+    rain:[],bolts:[],
     sp:0,kills:0,bosses:0,flash:0,dm:1,rt:1,nm:120,bs:[],stun:0,numTurrets:0,
-    hasTesla:false,isNight:false,combo:0,comboTimer:0
+    hasTesla:false,isNight:false,isRaining:false,thunderTimer:5,
+    barnDoorOpen:0,barnTimer:40+Math.random()*50,
+    combo:0,comboTimer:0
   };
   S.bale=[
     {x:65,y:LINE-18,hp:120,mhp:120},
     {x:W/2,y:LINE-18,hp:120,mhp:120},
     {x:W-65,y:LINE-18,hp:120,mhp:120}
   ];
+  for(let i=0;i<60;i++)S.rain.push({x:Math.random()*W,y:Math.random()*H,l:10+Math.random()*10,sp:400+Math.random()*200});
 }
 
 function spawn(){
@@ -192,6 +207,29 @@ function spawn(){
     ph:Math.random()*6,egg:Math.random()<.14&&ty!=4,dt:.5+Math.random()*2.5,hitTimer:0
   };
   S.ch.push(o);
+}
+
+/* ---------- Αχυρώνας Event (> 2000 Κοτόπουλα) ---------- */
+function spawnBarnRunner(){
+  S.barnDoorOpen=2.0;
+  playSound('barn');
+  const isGiftMode = Math.random() < 0.01; // 1% chance να πετάει αυγά αναβάθμισης αντί για κακά αυγά!
+  if(isGiftMode){
+    text(285,85,'🌟 1% LUCKY BARN! ΔΩΡΑ!','#ffd43b');
+  }else{
+    text(295,85,'⚠️ Ο ΑΧΥΡΩΝΑΣ ΑΝΟΙΞΕ!','#ff6b6b');
+  }
+  const hp=45+S.t*0.5;
+  S.ch.push({
+    ty:6, // Barn Runner
+    r:15,hp,mhp:hp,
+    sp:185, // Πολύ γρήγορο!
+    vx:-145, // Ξεκινά από τα δεξιά (αχυρώνας)
+    col:isGiftMode?'#ffd43b':'#ff922b',
+    isGiftMode:isGiftMode,
+    x:312,y:112,bx:312,
+    ph:0,eggDropTimer:0.15,eggsLeft:6,hitTimer:0
+  });
 }
 
 function boom(x,y,c,n,scale=1){
@@ -219,9 +257,9 @@ const UP=[
 },ok:s=>s.numTurrets<2,leg:true},
 {c:'Άμυνα',w:2,col:'#38d9a9',t:s=>'Tesla Φράχτης (Υψωμένος)',f:s=>{s.hasTesla=true;},ok:s=>!s.hasTesla,leg:true},
 {c:'Υποστήριξη',w:1,col:'#ffd43b',t:s=>'Επισκευή Άχυρων (+60 HP)',f:s=>{s.bale.forEach(b=>{b.hp=Math.min(b.mhp,b.hp+60);});}},
-{c:'Επιδρομή',w:1,col:'#ff922b',t:s=>'Τρακτέρ Επιδρομή (Κάθετη)!',f:s=>{
+{c:'Επιδρομή',w:1,col:'#ff922b',t:s=>'Τρακτέρ Επιδρομή!',f:s=>{
   s.tractors.push({x:W/2,y:H+40,sp:320});playSound('tractor');
-},leg:true},
+}},
 {c:'Ζημιά',w:1,col:'#ffd43b',t:s=>'+35% ζημιά',f:s=>{s.dm*=1.35}},
 {c:'Ταχύτητα',w:1,col:'#ffd43b',t:s=>'+25% ταχύτητα βολής',f:s=>{s.rt*=1.25}}
 ];
@@ -255,7 +293,7 @@ function expl(b){
     c.hp-=b.d;c.hitTimer=.15;dmgPopup(c.x,c.y,b.d,true);
   }
   for(const e of S.eg)if(Math.hypot(e.x-b.x,e.y-b.y)<b.rad+10)e.hp-=b.d;
-  boom(b.x,b.y,'#ffb347',18,1.3);
+  boom(b.x,b.y,S.lv.c>=5?'#ff4444':'#ffb347',18,1.3);
 }
 
 function fire(dt){
@@ -269,7 +307,7 @@ function fire(dt){
         S.muzz.push({x:px(i),y:PY-38,l:.06});
         for(let k=0;k<sh;k++){
           const a=(k-(sh-1)/2)*.09;
-          S.bl.push({x:px(i),y:PY-36,vx:Math.sin(a)*640,vy:-Math.cos(a)*640,d:10*dmM(L.r)});
+          S.bl.push({x:px(i),y:PY-36,vx:Math.sin(a)*640,vy:-Math.cos(a)*640,d:10*dmM(L.r),lv:L.r});
         }
       }
     }
@@ -280,7 +318,7 @@ function fire(dt){
       playSound('laser');
       const bw=12+Math.min(14,2*L.l),dg=45*(1+.25*(L.l-1))*S.dm;
       for(let i=0;i<S.n;i++){
-        const bx=px(i);S.bm.push({x:bx,w:bw,l:.25,m:.25});
+        const bx=px(i);S.bm.push({x:bx,w:bw,l:.25,m:.25,lv:L.l});
         for(const c of S.ch)if(c.y>0&&Math.abs(c.x-bx)<c.r+bw/2){c.hp-=dg;c.hitTimer=.12;dmgPopup(c.x,c.y,dg);}
         for(const e of S.eg)if(e.y>0&&Math.abs(e.x-bx)<13+bw/2)e.hp-=dg;
       }
@@ -290,7 +328,7 @@ function fire(dt){
     F.c-=dt;if(F.c<=0){
       F.c=Math.max(.2,1.3/(1+.12*(L.c-1))/S.rt);
       playSound('cannon');
-      for(let i=0;i<S.n;i++)S.bl.push({x:px(i),y:PY-34,vx:0,vy:-440,d:95*(1+.3*(L.c-1))*S.dm,cn:1,rad:65+Math.min(50,4*L.c)});
+      for(let i=0;i<S.n;i++)S.bl.push({x:px(i),y:PY-34,vx:0,vy:-440,d:95*(1+.3*(L.c-1))*S.dm,cn:1,rad:65+Math.min(50,4*L.c),lv:L.c});
     }
   }
   
@@ -305,7 +343,7 @@ function fire(dt){
         tur.cooldown=Math.max(0.12,0.35/S.rt);
         playSound('turret');
         const angle=Math.atan2(target.y-tur.y,target.x-tur.x);
-        S.bl.push({x:tur.x,y:tur.y,vx:Math.cos(angle)*700,vy:Math.sin(angle)*700,d:15*S.dm});
+        S.bl.push({x:tur.x,y:tur.y,vx:Math.cos(angle)*700,vy:Math.sin(angle)*700,d:15*S.dm,lv:5});
       }
     }
   }
@@ -369,8 +407,42 @@ function upd(dt){
   if(!S||S.st!='play')return;
   S.t+=dt;millAngle+=dt*0.8;
   if(shake>0)shake-=dt*22;
+  if(S.barnDoorOpen>0)S.barnDoorOpen-=dt;
   
   S.isNight=Math.floor(S.t/35)%2===1;
+  S.isRaining=S.isNight;
+
+  // Καιρικά φαινόμενα: Βροχή & Κεραυνοί
+  if(S.isRaining){
+    for(const r of S.rain){
+      r.y+=r.sp*dt;r.x-=80*dt;
+      if(r.y>H){r.y=-15;r.x=Math.random()*(W+80);}
+    }
+    S.thunderTimer-=dt;
+    if(S.thunderTimer<=0){
+      S.thunderTimer=5+Math.random()*6;
+      const targets=S.ch.filter(c=>!c.boss&&!c.ge&&c.y>40&&c.y<LINE-40);
+      if(targets.length>0){
+        const t=targets[Math.floor(Math.random()*targets.length)];
+        playSound('thunder');
+        S.flash=0.25;shake=10;
+        S.bolts.push({x:t.x,y:t.y,l:0.25});
+        t.hp-=250;t.hitTimer=0.2;
+        boom(t.x,t.y,'#74c0fc',25,1.5);
+        text(t.x,t.y-20,'⚡ ΚΕΡΑΥΝΟΣ!','#74c0fc');
+      }
+    }
+  }
+  for(const b of S.bolts)b.l-=dt;S.bolts=S.bolts.filter(b=>b.l>0);
+
+  // Event Αχυρώνα μετά από 2000 κοτόπουλα (κάθε 40 δευτ. έως 1.5 λεπτό / 90 δευτ.)
+  if(S.kills>=2000){
+    S.barnTimer-=dt;
+    if(S.barnTimer<=0){
+      S.barnTimer=40+Math.random()*50;
+      spawnBarnRunner();
+    }
+  }
 
   let d=0;if(keys.ArrowLeft||keys.a)d--;if(keys.ArrowRight||keys.d)d++;if(d)tx+=d*440*dt;
   const half=(S.n-1)*Math.min(15,(W-50)/Math.max(1,S.n-1)/2)+16;
@@ -394,6 +466,26 @@ function upd(dt){
       if(c.y>PY-14){c.hp=-1;S.stun=1.6;playSound('stun');boom(c.x,PY,'#ffe066',16);text(c.x,PY-40,'ΣΟΚ!','#ffe066');}
       continue;
     }
+    if(c.ty==6){
+      // Barn Runner: Τρέχει πολύ γρήγορα και πετάει κακά αυγά (ή 1% chance αυγά αναβάθμισης!)
+      c.x+=c.vx*dt;
+      if(c.x<30||c.x>W-30)c.vx*=-1;
+      c.y+=c.sp*dt;
+      c.eggDropTimer-=dt;
+      if(c.eggDropTimer<=0&&c.eggsLeft>0){
+        c.eggDropTimer=0.22;c.eggsLeft--;
+        if(c.isGiftMode){
+          // 1% Lucky Barn: Πετάει αυγά αναβάθμισης!
+          S.eg.push({x:c.x,y:c.y+c.r,hp:1,mhp:1,vy:65});
+        }else{
+          // 99% Κανονικό: Πετάει κακά αυγά (Stun eggs) που στοχεύουν τους παίκτες όπως του Boss!
+          const g=px(Math.floor(Math.random()*S.n)),T=Math.max(0.5,(PY-14-c.y)/185);
+          S.ch.push({ge:1,r:11,hp:25+S.t*.3,mhp:1,x:c.x,y:c.y+c.r,vx:(g-c.x)/T,sp:185,col:'#fff3bf',ph:0});
+        }
+      }
+      continue;
+    }
+
     c.y+=c.sp*dt;
     if(c.ty==3)c.x=Math.max(15,Math.min(W-15,c.bx+Math.sin(S.t*6+c.ph)*45));
     else c.x=Math.max(15,Math.min(W-15,c.bx+Math.sin(S.t*2+c.ph)*12));
@@ -440,7 +532,7 @@ function upd(dt){
       S.kills++;
       S.combo++;S.comboTimer=2.0;
       S.gems.push({x:c.x,y:c.y,vy:-30,l:1.2});
-      boom(c.x,c.y,c.ty==3?'#777':c.ty==4?'#ff4444':'#ffffff',c.r>15?18:9);
+      boom(c.x,c.y,c.ty==3?'#777':c.ty==4?'#ff4444':c.ty==6?'#ffd43b':'#ffffff',c.r>15?18:9);
     }
   }
   S.ch=S.ch.filter(c=>c.hp>0);
@@ -505,32 +597,54 @@ function milestone(){
 
 function board(){
   if(!tops.length)return'<div style="font-size:12px;opacity:.7">Φόρτωση παγκόσμιων σκορ...</div>';
-  return'<div style="font-size:11px;line-height:1.4;text-align:left;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:6px 10px;width:100%;max-width:270px;max-height:160px;overflow-y:auto"><b>🌍 Global Top 10 Scores</b>'+
-  tops.map((e,i)=>'<div>'+(i+1)+'. <b>'+(e.n||'Παίκτης')+'</b> - '+e.s+' <span style="opacity:.7">('+e.k+' κοτ.)</span></div>').join('')+'</div>';
+  return'<div style="font-size:11.5px;line-height:1.5;text-align:left;background:rgba(0,0,0,0.55);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:10px 12px;width:100%;max-width:290px;max-height:230px;overflow-y:auto"><b>🌍 Global Top 10 Scores</b><div style="margin-top:6px">'+
+  tops.map((e,i)=>{
+    const timeStr=typeof e.t==='number'?fmtTime(e.t):(e.t||'00:00');
+    return'<div style="border-bottom:1px solid rgba(255,255,255,0.06);padding:3px 0">'+(i+1)+'. <b>'+(e.n||'Παίκτης')+'</b> - <span style="color:#ffd43b;font-weight:700">'+e.s+'</span> <span style="opacity:.75;font-size:10.5px">('+e.k+' κοτ. · '+timeStr+')</span></div>';
+  }).join('')+'</div></div>';
 }
 
 function over(){
-  S.st='over';const sc=S.kills*10+500*S.bosses,t=Math.floor(S.t);
+  S.st='over';const sc=S.kills*10+500*S.bosses,tSec=Math.floor(S.t);
   ov.style.display='flex';
   
   const isTop10=tops.length<10||sc>(tops[tops.length-1]?.s||0);
   if(isTop10){
-    ov.innerHTML='<h1>Νέο Παγκόσμιο Record!</h1><p>Σκορ '+sc+' · '+S.kills+' κοτόπουλα · '+t+' s</p>'+
+    ov.innerHTML='<h1>Νέο Παγκόσμιο Record!</h1><p>Σκορ '+sc+' · '+S.kills+' κοτόπουλα · '+fmtTime(tSec)+'</p>'+
     '<input type="text" id="pname" class="name-in" placeholder="Δώσε όνομα..." maxlength="12" />'+
     '<button id="savebtn" class="b">Αποθήκευση</button>';
     document.getElementById('savebtn').onclick=()=>{
       const name=document.getElementById('pname').value.trim()||'Παίκτης';
-      saveGlobalScore(name,sc,S.kills,t);
-      showGameOverScreen(sc,S.kills,t);
+      saveGlobalScore(name,sc,S.kills,tSec);
+      showGameOverScreen(sc,S.kills,tSec);
     };
   }else{
-    showGameOverScreen(sc,S.kills,t);
+    showGameOverScreen(sc,S.kills,tSec);
   }
 }
 
-function showGameOverScreen(sc,kills,t){
-  ov.innerHTML='<h1>Τα κοτόπουλα νίκησαν!</h1><p>Σκορ '+sc+' · '+kills+' κοτόπουλα · '+t+' s</p>'+board();
+function showGameOverScreen(sc,kills,tSec){
+  ov.innerHTML='<h1>Τα κοτόπουλα νίκησαν!</h1><p>Σκορ '+sc+' · '+kills+' κοτόπουλα · '+fmtTime(tSec)+'</p>'+board();
   const b=document.createElement('button');b.className='b';b.textContent='Ξανά';b.onclick=()=>{ov.style.display='none';reset();};ov.appendChild(b);
+  const bHome=document.createElement('button');bHome.className='b b-sec';bHome.textContent='Αρχική';bHome.onclick=showHomeScreen;ov.appendChild(bHome);
+}
+
+function showHighScoresScreen(){
+  ov.innerHTML='<h1>🏆 High Scores</h1>'+board();
+  const b=document.createElement('button');b.className='b b-sec';b.textContent='Πίσω';b.onclick=showHomeScreen;ov.appendChild(b);
+}
+
+function showHomeScreen(){
+  ov.style.display='flex';
+  ov.innerHTML='<h1>Άγρια Κοτόπουλα</h1><p>Σύρε το δάχτυλο/ποντίκι ή χρησιμοποίησε ← → / A D για να μετακινήσεις τους αγρότες. Μην αφήσεις τα κοτόπουλα να περάσουν τη γραμμή!</p>';
+  
+  const g0=document.createElement('button');g0.className='b';g0.textContent='Παίξε';
+  g0.onclick=()=>{initAudio();ov.style.display='none';reset();};
+  ov.appendChild(g0);
+
+  const gHigh=document.createElement('button');gHigh.className='b b-sec';gHigh.textContent='🏆 High Scores';
+  gHigh.onclick=showHighScoresScreen;
+  ov.appendChild(gHigh);
 }
 
 /* ---------- Rendering ---------- */
@@ -560,6 +674,9 @@ function chick(c){
     R(x-r*.85,y-r*1.15,r*1.7,r*.75,'#607d8b');R(x-r*.95,y-r*.55,r*1.9,r*.25,'#37474f');E(x,y-r*.9,r*.3,r*.25,'#f44336');
   }else if(c.ty==3){
     R(x-r*.9,y-r*.4,r*1.8,r*.35,'#e74c3c');
+  }else if(c.ty==6){
+    // Καπέλο/στέμμα για το Barn Runner
+    E(x,y-r*1.1,r*.5,r*.3,c.isGiftMode?'#fff':'#e74c3c');
   }
 
   E(x,hy,hr*1.1,hr*1.05,bodyCol);
@@ -568,9 +685,14 @@ function chick(c){
   E(x-hr*.42,hy-hr*.05,hr*.25,hr*.28,'#fff');E(x+hr*.42,hy-hr*.05,hr*.25,hr*.28,'#fff');
   E(x-hr*.42,hy,hr*.13,hr*.15,'#111');E(x+hr*.42,hy,hr*.13,hr*.15,'#111');
   
+  // Ξεχωριστή Μπάρα HP για κάθε Boss
   if(c.boss){
     P([[x-r*.55,y-r*1.0],[x-r*.45,y-r*1.55],[x-r*.18,y-r*1.15],[x,y-r*1.75],[x+r*.18,y-r*1.15],[x+r*.45,y-r*1.55],[x+r*.55,y-r*1.0]],'#f1c40f');
     E(x,y-r*1.35,3,3,'#e74c3c');
+    const bw=r*2.2;
+    R(x-bw/2,y-r*1.95-10,bw,7,'rgba(0,0,0,0.75)');
+    R(x-bw/2,y-r*1.95-10,bw*Math.max(0,c.hp/c.mhp),7,'#e74c3c');
+    ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.strokeRect(x-bw/2,y-r*1.95-10,bw,7);
   }else if(c.hp<c.mhp){
     R(x-r,y-r-10,r*2,4,'rgba(0,0,0,0.6)');R(x-r,y-r-10,r*2*Math.max(0,c.hp/c.mhp),4,'#2ecc71');
   }
@@ -609,9 +731,25 @@ function draw(){
   if(shake>0)ctx.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake);
   ctx.drawImage(BG,0,0);
   
+  if(S&&S.barnDoorOpen>0){
+    R(295,95,34,35,'#ffd43b');
+    ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.strokeRect(295,95,34,35);
+  }
+
   if(S&&S.isNight){
     ctx.fillStyle='rgba(5, 10, 35, 0.55)';
     ctx.fillRect(0,0,W,H);
+  }
+
+  if(S&&S.isRaining){
+    ctx.strokeStyle='rgba(174, 214, 241, 0.45)';ctx.lineWidth=1.5;
+    ctx.beginPath();
+    for(const r of S.rain){ctx.moveTo(r.x,r.y);ctx.lineTo(r.x-3,r.y+r.l);}
+    ctx.stroke();
+  }
+  for(const b of S.bolts){
+    ctx.strokeStyle='rgba(116, 192, 252, '+(b.l*4)+')';ctx.lineWidth=4;
+    ctx.beginPath();ctx.moveTo(b.x,0);ctx.lineTo(b.x-15,b.y*0.4);ctx.lineTo(b.x+10,b.y*0.7);ctx.lineTo(b.x,b.y);ctx.stroke();
   }
 
   drawWindmill();
@@ -663,15 +801,24 @@ function draw(){
   }
 
   for(const b of S.bl){
-    if(b.cn){E(b.x,b.y,7,7,'#2c3e50');E(b.x-2,b.y-2,2,2,'#95a5a6');}
-    else{ctx.fillStyle='#f1c40f';ctx.shadowColor='#f39c12';ctx.shadowBlur=4;ctx.beginPath();ctx.arc(b.x,b.y,3.5,0,6.28);ctx.fill();ctx.shadowBlur=0;}
+    if(b.cn){
+      E(b.x,b.y,b.lv>=5?9:7,b.lv>=5?9:7,b.lv>=5?'#e74c3c':'#2c3e50');
+      E(b.x-2,b.y-2,3,3,b.lv>=5?'#ffd43b':'#95a5a6');
+    }else{
+      const bCol=b.lv>=10?'#cc5de8':b.lv>=5?'#3bc9db':'#f1c40f';
+      const bRad=b.lv>=10?5:b.lv>=5?4.2:3.5;
+      ctx.fillStyle=bCol;ctx.shadowColor=bCol;ctx.shadowBlur=6;
+      ctx.beginPath();ctx.arc(b.x,b.y,bRad,0,6.28);ctx.fill();ctx.shadowBlur=0;
+    }
   }
 
   for(const m of S.muzz){E(m.x,m.y,8,12,'rgba(241,196,15,0.9)');E(m.x,m.y,4,6,'#fff');}
 
   for(const q of S.bm){
     const f=q.l/q.m;
-    ctx.strokeStyle='rgba(231,76,60,'+.4*f+')';ctx.lineWidth=q.w+12;
+    const lCol=q.lv>=10?'rgba(255, 212, 59, ':'rgba(59, 201, 219, ';
+    const baseCol=q.lv>=5?lCol:'rgba(231, 76, 60, ';
+    ctx.strokeStyle=baseCol+(.45*f)+')';ctx.lineWidth=q.w+12;
     ctx.beginPath();ctx.moveTo(q.x,PY-36);ctx.lineTo(q.x,0);ctx.stroke();
     ctx.strokeStyle='rgba(255,255,255,'+f+')';ctx.lineWidth=Math.max(3,q.w*.3*f);ctx.stroke();
   }
@@ -707,14 +854,6 @@ function draw(){
 
   if(S.flash>0){ctx.fillStyle='rgba(255,255,255,'+S.flash*2+')';ctx.fillRect(0,0,W,H);}
 
-  if(S.bs.length>0){
-    const bTotalHp=S.bs.reduce((a,b)=>a+Math.max(0,b.hp),0);
-    const bMaxHp=S.bs.reduce((a,b)=>a+b.mhp,0);
-    R(60,42,240,11,'rgba(0,0,0,0.6)');
-    R(60,42,240*(bTotalHp/bMaxHp),11,'#e74c3c');
-    ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.strokeRect(60,42,240,11);
-  }
-
   if(S.combo>3){
     ctx.save();
     const pulse=1+Math.sin(S.t*15)*0.1;
@@ -737,7 +876,7 @@ function draw(){
     ctx.restore();
   }
 
-  ctx.fillStyle='#fff';ctx.font='800 14px system-ui';ctx.textAlign='left';ctx.fillText(Math.floor(S.t)+' s',50,23);
+  ctx.fillStyle='#fff';ctx.font='800 14px system-ui';ctx.textAlign='left';ctx.fillText(fmtTime(S.t),50,23);
   ctx.textAlign='right';ctx.fillText('Κοτόπουλα '+S.kills,W-50,23);
   ctx.textAlign='center';ctx.font='600 11.5px system-ui';ctx.fillText('Τουφ.'+S.lv.r+(S.lv.l?' Λέιζ.'+S.lv.l:'')+(S.lv.c?' Καν.'+S.lv.c:'')+' · Turrets '+S.numTurrets+'/2',W/2,H-8);
   ctx.restore();
@@ -781,11 +920,7 @@ function mx(e){
 cv.addEventListener('pointerdown',e=>{initAudio();tx=mx(e);});
 cv.addEventListener('pointermove',e=>{if(e.buttons>0||e.pointerType==='touch')tx=mx(e);});
 
-ov.innerHTML='<h1>Άγρια Κοτόπουλα</h1><p>Σύρε το δάχτυλο/ποντίκι ή χρησιμοποίησε ← → / A D για να μετακινήσεις τους αγρότες. Μην αφήσεις τα κοτόπουλα να περάσουν τη γραμμή!</p>'+board();
-const g0=document.createElement('button');g0.className='b';g0.textContent='Παίξε';
-g0.onclick=()=>{initAudio();ov.style.display='none';reset();};
-ov.appendChild(g0);
-
+showHomeScreen();
 requestAnimationFrame(loop);
 </script>
 </body>
